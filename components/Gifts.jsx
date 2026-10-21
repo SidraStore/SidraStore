@@ -30,7 +30,7 @@ export default function Gifts() {
           <p className="mt-3 text-base text-stone-300">
             Perfect for yourself or your loved ones.
           </p>
-          <a href="#" className="btn-gold mt-7 !px-8 !py-3.5 !text-sm">
+          <a href="/gifts-combos" className="btn-gold mt-7 !px-7 !py-3.5 !text-sm">
             Shop Combos
           </a>
         </Reveal>

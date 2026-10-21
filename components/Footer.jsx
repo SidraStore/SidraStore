@@ -5,10 +5,10 @@ import Reveal from "./Reveal";
 import { footerCategories, quickLinks } from "@/lib/data";
 
 const socials = [
-  { icon: FaInstagram, label: "Instagram" },
-  { icon: FaFacebookF, label: "Facebook" },
-  { icon: FaYoutube, label: "YouTube" },
-  { icon: FaWhatsapp, label: "WhatsApp" },
+  { icon: FaInstagram, label: "Instagram", href: "https://www.instagram.com/sidrastore.in?igsh=MTNlMThvcWRhYnB5Yw==" },
+  { icon: FaFacebookF, label: "Facebook", href: "https://www.facebook.com/profile.php?id=61587703357197" },
+  { icon: FaYoutube, label: "YouTube", href: "#" },
+  { icon: FaWhatsapp, label: "WhatsApp", href: "#" },
 ];
 
 const bottomPerks = [
@@ -18,6 +18,19 @@ const bottomPerks = [
 ];
 
 function Col({ title, items }) {
+  const routes = {
+    Home: "/",
+    Shop: "/shop",
+    "About Us": "/about",
+    Contact: "/contact",
+    "All Products": "/shop",
+    "Attar & Fragrances": "/attar-fragrances",
+    "Islamic Caps": "/islamic-caps",
+    Surma: "/surma",
+    "Prayer Essentials": "/prayer-essentials",
+    "Islamic Wear": "/islamic-wear",
+    "Gifts & Combos": "/gifts-combos",
+  };
   return (
     <div>
       <h4 className="text-base font-bold text-gold-light">{title}</h4>
@@ -25,7 +38,7 @@ function Col({ title, items }) {
         {items.map((i) => (
           <li key={i}>
             <a
-              href="#"
+              href={routes[i] || "#"}
               className="inline-block text-sm text-stone-300 transition duration-300 hover:translate-x-1.5 hover:text-gold-light"
             >
               {i}
@@ -48,11 +61,13 @@ export default function Footer() {
               Premium Attar &amp; Islamic Lifestyle Products for a More Meaningful Everyday.
             </p>
             <div className="mt-6 flex gap-3">
-              {socials.map(({ icon: Icon, label }) => (
+              {socials.map(({ icon: Icon, label, href }) => (
                 <a
                   key={label}
-                  href="#"
+                  href={href}
                   aria-label={label}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/60 text-gold transition duration-300 hover:-translate-y-1 hover:bg-gold hover:text-ink"
                 >
                   <Icon size={17} />

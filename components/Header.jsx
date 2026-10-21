@@ -2,13 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowRight,
   BadgeCheck,
   ChevronDown,
   Heart,
   Mail,
   MapPin,
-  Menu,
   Phone,
   Search,
   ShoppingBag,
@@ -19,15 +17,17 @@ import {
 } from "lucide-react";
 import Logo from "./Logo";
 import MobileSidebar from "./MobileSidebar";
+import { useCart } from "./CartProvider";
+import { useStorefrontContent } from "./useStorefrontData";
 
 // rotating announcement in the top bar
-const announcements = [
+const defaultAnnouncements = [
   { icon: Truck, text: "Free Shipping on orders above ₹999" },
   { icon: BadgeCheck, text: "100% Authentic Attar & Islamic Products" },
   { icon: Sparkles, text: "Alcohol Free • Long Lasting Fragrances" },
 ];
 
-function Ticker() {
+function Ticker({ announcements }) {
   const [i, setI] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setI((v) => (v + 1) % announcements.length), 3500);
@@ -46,22 +46,18 @@ function Ticker() {
 }
 
 const navItems = [
-  {
-    label: "Attar & Fragrances",
-    children: ["Sidra Oudh", "Aseel", "White Oudh", "Jannatul Ferdous", "Rose Bulgari", "Fasli Gulab"],
-  },
-  {
-    label: "Islamic Caps",
-    children: ["Barkati Cap", "Owaisi Cap", "Omani Cap", "Jarkali Cap", "Designer Cap"],
-  },
-  { label: "Surma" },
-  { label: "Prayer Essentials", children: ["Ja Namaz", "Surma", "Attar for Prayer"] },
-  { label: "Islamic Wear", children: ["Ajrak Chadar", "Omani Chadar", "Imama Shareef"] },
-  { label: "Gifts & Combos", badge: "New" },
-  { label: "All Products" },
+  { label: "Home", href: "/" },
+  { label: "Shop", href: "/shop" },
+  { label: "Gifts & Combos", badge: "New", href: "/gifts-combos" },
+  { label: "About Us", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export default function Header() {
+  const { itemCount } = useCart();
+  const { data: storefrontContent } = useStorefrontContent();
+  const announcementMessages = storefrontContent.announcements.length ? storefrontContent.announcements.map((item) => item.message) : defaultAnnouncements.map((item) => item.text);
+  const announcements = announcementMessages.map((text, index) => ({ icon: defaultAnnouncements[index % defaultAnnouncements.length].icon, text }));
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -103,18 +99,11 @@ export default function Header() {
                   <MapPin size={14} className="text-gold" />
                   Near M.S. Hospital, Hussainiya School, 4 Khamba, Jabalpur, MP 482003
                 </span>
-                <span className="flex items-center gap-2 font-medium">
-                  <Truck size={14} className="text-gold" />
-                  <span className="text-shimmer">Free Shipping on orders above ₹999</span>
-                </span>
+                {announcementMessages.map((message) => <span key={message} className="flex items-center gap-2 font-medium"><Truck size={14} className="text-gold" /><span className="text-shimmer">{message}</span></span>)}
                 <a href="tel:7489407728" className="flex items-center gap-2">
                   <Phone size={14} className="text-gold" />
                   7489407728
                 </a>
-                <span className="flex items-center gap-2 font-medium">
-                  <BadgeCheck size={14} className="text-gold" />
-                  <span className="text-shimmer">100% Authentic Attar &amp; Islamic Products</span>
-                </span>
                 <a href="mailto:sidrastoreamo@gmail.com" className="flex items-center gap-2">
                   <Mail size={14} className="text-gold" />
                   sidrastoreamo@gmail.com
@@ -143,7 +132,7 @@ export default function Header() {
               sidrastoreamo@gmail.com
             </a>
           </div>
-          <Ticker />
+          <Ticker announcements={announcements} />
         </div>
       </div>
 
@@ -156,78 +145,94 @@ export default function Header() {
         }`}
       >
         <div
-          className={`container-site flex items-center justify-between gap-6 transition-all duration-500 ${
+          className={`container-site flex items-center justify-between gap-2 transition-all duration-500 sm:gap-6 ${
             scrolled ? "h-[66px]" : "h-[84px]"
           }`}
         >
-          <a href="#" aria-label="Sidra home" className="shrink-0 transition duration-300 hover:scale-105">
-            <Logo className={`transition-all duration-500 ${scrolled ? "h-8" : "h-11"}`} />
+          <a
+            href="/"
+            aria-label="Sidra home"
+            className={`shrink-0 transition duration-300 hover:scale-105 ${searchOpen ? "hidden md:block" : ""}`}
+          >
+            <Logo className={`transition-all duration-500 ${scrolled ? "h-7 sm:h-8" : "h-9 sm:h-11"}`} />
           </a>
 
           {/* desktop links */}
-          <nav className="hidden items-center xl:flex">
+          <nav className="hidden items-center gap-4 xl:flex 2xl:gap-6">
             {navItems.map((item) => (
               <div key={item.label} className="group relative">
-                <a
-                  href="#"
-                  className="relative flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[14px] font-semibold text-ink transition duration-300 hover:bg-gold/10 hover:text-gold-dark"
-                >
-                  {item.label}
-                  {item.badge && (
-                    <span className="rounded-full bg-gradient-to-b from-gold-light to-gold px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide text-ink shadow-[0_0_12px_rgba(232,189,109,0.8)]">
-                      {item.badge}
-                    </span>
-                  )}
-                  {item.children && (
-                    <ChevronDown
-                      size={14}
-                      className="transition duration-300 group-hover:rotate-180"
-                    />
-                  )}
-                  {/* underline grows from the centre */}
-                  <span className="absolute bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-gradient-to-r from-gold-dark via-gold-light to-gold-dark transition-all duration-300 group-hover:w-[55%]" />
-                </a>
-
-                {item.children && (
-                  <div className="invisible absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 translate-y-3 pt-3 opacity-0 transition-all duration-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-                    <div className="relative overflow-hidden rounded-2xl border border-gold/30 bg-white p-2 shadow-[0_24px_60px_-12px_rgba(21,16,12,0.45)]">
-                      <span className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-gold-dark via-gold-light to-gold-dark" />
-                      <p className="px-4 pb-1.5 pt-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-gold-dark">
-                        {item.label}
-                      </p>
-                      {item.children.map((c, i) => (
+                {item.children ? (
+                  // Parent with dropdown - use button, not anchor
+                  <>
+                    <button
+                      className="relative flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[14px] font-semibold text-ink transition duration-300 hover:bg-gold/10 hover:text-gold-dark"
+                    >
+                      {item.label}
+                      {item.badge && (
+                        <span className="rounded-full bg-gradient-to-b from-gold-light to-gold px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide text-ink shadow-[0_0_12px_rgba(232,189,109,0.8)]">
+                          {item.badge}
+                        </span>
+                      )}
+                      <ChevronDown
+                        size={14}
+                        className="transition duration-300 group-hover:rotate-180"
+                      />
+                      {/* underline grows from the centre */}
+                      <span className="absolute bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-gradient-to-r from-gold-dark via-gold-light to-gold-dark transition-all duration-300 group-hover:w-[55%]" />
+                    </button>
+                    <div className="invisible absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 translate-y-3 pt-3 opacity-0 transition-all duration-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                      <div className="relative overflow-hidden rounded-2xl border border-gold/30 bg-white p-2 shadow-[0_24px_60px_-12px_rgba(21,16,12,0.45)]">
+                        <span className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-gold-dark via-gold-light to-gold-dark" />
+                        <p className="px-4 pb-1.5 pt-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-gold-dark">
+                          {item.label}
+                        </p>
+                        {item.children.map((c, i) => (
+                          <a
+                            key={c.name}
+                            href={c.href}
+                            style={{ transitionDelay: `${i * 30}ms` }}
+                            className="group/item flex items-center rounded-xl px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-cream hover:pl-5 hover:text-gold-dark"
+                          >
+                            {c.name}
+                          </a>
+                        ))}
                         <a
-                          key={c}
-                          href="#"
-                          style={{ transitionDelay: `${i * 30}ms` }}
-                          className="group/item flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-cream hover:pl-5 hover:text-gold-dark"
+                          href={item.href}
+                          className="group/all mt-1 flex items-center justify-center rounded-xl bg-ink px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-gold hover:text-ink"
                         >
-                          {c}
-                          <span className="text-gold opacity-0 transition group-hover/item:opacity-100">→</span>
+                          View all
                         </a>
-                      ))}
-                      <a
-                        href="#"
-                        className="group/all mt-1 flex items-center justify-between rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gold hover:text-ink"
-                      >
-                        View all
-                        <ArrowRight size={15} className="transition group-hover/all:translate-x-1" />
-                      </a>
+                      </div>
                     </div>
-                  </div>
+                  </>
+                ) : (
+                  // Simple link without dropdown
+                  <a
+                    href={item.href || "#"}
+                    className="relative flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[14px] font-semibold text-ink transition duration-300 hover:bg-gold/10 hover:text-gold-dark"
+                  >
+                    {item.label}
+                    {item.badge && (
+                      <span className="rounded-full bg-gradient-to-b from-gold-light to-gold px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide text-ink shadow-[0_0_12px_rgba(232,189,109,0.8)]">
+                        {item.badge}
+                      </span>
+                    )}
+                    {/* underline grows from the centre */}
+                    <span className="absolute bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-gradient-to-r from-gold-dark via-gold-light to-gold-dark transition-all duration-300 group-hover:w-[55%]" />
+                  </a>
                 )}
               </div>
             ))}
           </nav>
 
           {/* actions */}
-          <div className="flex items-center gap-1.5 text-ink">
+          <div className="flex shrink-0 items-center gap-0.5 text-ink sm:gap-1.5">
             {/* expanding search */}
             <div
               className={`flex items-center overflow-hidden rounded-full border transition-all duration-500 ${
                 searchOpen
                   ? "w-[210px] border-gold/50 bg-cream pl-4 sm:w-[260px]"
-                  : "w-11 border-transparent"
+                  : "w-10 border-transparent sm:w-11"
               }`}
             >
               <input
@@ -241,18 +246,19 @@ export default function Header() {
               <button
                 aria-label="Search"
                 onClick={() => setSearchOpen((v) => !v)}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark sm:h-11 sm:w-11"
               >
                 {searchOpen ? <X size={20} /> : <Search size={21} />}
               </button>
             </div>
 
-            <button
+            <a
+              href="/login"
               aria-label="Account"
               className="hidden h-11 w-11 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark sm:flex"
             >
               <User size={21} />
-            </button>
+            </a>
 
             <button
               aria-label="Wishlist"
@@ -262,24 +268,40 @@ export default function Header() {
             </button>
 
             {/* cart pill */}
-            <button
+            <a
+              href="/checkout"
               aria-label="Cart"
-              className="group relative ml-2 flex h-11 items-center gap-2.5 overflow-hidden rounded-full bg-ink pl-4 pr-1.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(21,16,12,0.7)] transition duration-300 hover:-translate-y-0.5 hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink"
+              className="group relative flex h-10 items-center gap-1.5 overflow-hidden rounded-full bg-ink py-1 pl-3 pr-1 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(21,16,12,0.7)] transition duration-300 hover:-translate-y-0.5 hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink sm:ml-2 sm:h-11 sm:gap-2.5 sm:pl-4 sm:pr-1.5"
             >
               <ShoppingBag size={18} className="text-gold-light transition group-hover:text-ink" />
               <span className="hidden sm:inline">Cart</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-gold-light to-gold text-xs font-bold text-ink transition group-hover:bg-ink group-hover:text-gold-light">
-                0
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-gold-light to-gold text-xs font-bold text-ink transition group-hover:bg-ink group-hover:text-gold-light sm:h-8 sm:w-8">
+                {itemCount}
               </span>
-            </button>
+            </a>
 
             <button
-              aria-label="Open menu"
+              type="button"
+              aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
-              className="flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark xl:hidden"
-              onClick={() => setOpen(true)}
+              className="relative -mr-2 ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-cream text-ink shadow-sm transition duration-300 hover:border-gold hover:bg-gold/15 sm:ml-0 sm:mr-0 sm:h-11 sm:w-11 xl:hidden"
+              onClick={() => setOpen((value) => !value)}
             >
-              <Menu size={25} />
+              <span
+                className={`absolute h-0.5 w-5 rounded-full bg-current transition-transform duration-300 ${
+                  open ? "rotate-45" : "-translate-y-1.5"
+                }`}
+              />
+              <span
+                className={`absolute h-0.5 w-5 rounded-full bg-current transition-all duration-200 ${
+                  open ? "scale-x-0 opacity-0" : "scale-x-100 opacity-100"
+                }`}
+              />
+              <span
+                className={`absolute h-0.5 w-5 rounded-full bg-current transition-transform duration-300 ${
+                  open ? "-rotate-45" : "translate-y-1.5"
+                }`}
+              />
             </button>
           </div>
         </div>

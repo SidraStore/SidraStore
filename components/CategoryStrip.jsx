@@ -58,7 +58,7 @@ export default function CategoryStrip() {
               className="w-[118px] shrink-0 snap-start sm:w-[130px] lg:w-auto"
             >
               <a
-                href="#"
+                href={c.href}
                 draggable={false}
                 className="group block select-none overflow-hidden rounded-[22px] border border-white/80 bg-white/70 p-1.5 shadow-[0_6px_18px_-10px_rgba(21,16,12,0.35)] backdrop-blur transition duration-300 hover:-translate-y-2 hover:border-gold/70 hover:bg-white hover:shadow-[0_20px_36px_-14px_rgba(201,154,75,0.65)]"
               >

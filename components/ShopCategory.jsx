@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ArrowUpRight, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import { shopCategories } from "@/lib/data";
+import { useStorefrontCatalog } from "./useStorefrontData";
 
 export default function ShopCategory() {
+  const { categories, error: catalogError } = useStorefrontCatalog([]);
+  const displayedCategories = categories.length ? categories.map((category) => {
+    const existing = shopCategories.find((item) => item.name === category.name);
+    return { name: category.name, img: category.image_url || existing?.img, tone: existing?.tone || "from-stone-600 to-ink", href: existing?.href || "/shop" };
+  }) : shopCategories;
   const [wish, setWish] = useState(() => new Set());
   const toggle = (name) =>
     setWish((prev) => {
@@ -39,21 +45,20 @@ export default function ShopCategory() {
             </p>
           </div>
           <a
-            href="#"
-            className="group flex items-center gap-2 rounded-full border border-gold/60 bg-white px-6 py-3 text-sm font-semibold text-ink shadow-sm transition duration-300 hover:-translate-y-0.5 hover:bg-gold hover:shadow-lg"
+            href="/all-products"
+            className="group flex items-center justify-center rounded-full border border-gold/60 bg-white px-5 py-3 text-center text-sm font-semibold text-ink shadow-sm transition duration-300 hover:-translate-y-0.5 hover:bg-gold hover:shadow-lg"
           >
             View All Categories
-            <ArrowRight size={16} className="transition group-hover:translate-x-1.5" />
           </a>
         </Reveal>
 
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
-          {shopCategories.map((c, i) => {
+          {displayedCategories.map((c, i) => {
             const liked = wish.has(c.name);
             return (
               <Reveal key={c.name} delay={(i % 5) * 100} from="zoom">
                 <a
-                  href="#"
+                  href={c.href}
                   className="group relative block h-[230px] overflow-hidden rounded-3xl shadow-[0_12px_30px_-16px_rgba(21,16,12,0.45)] ring-1 ring-stone-200 transition duration-500 hover:-translate-y-3 hover:shadow-[0_34px_60px_-20px_rgba(201,154,75,0.65)] hover:ring-2 hover:ring-gold sm:h-[290px]"
                 >
                   <SmartImage
@@ -94,12 +99,9 @@ export default function ShopCategory() {
                     <h3 className="font-serif text-lg font-semibold leading-tight text-white drop-shadow sm:text-xl">
                       {c.name}
                     </h3>
-                    <div className="mt-2 flex items-center justify-between">
+                    <div className="mt-2 flex items-center">
                       <span className="flex translate-y-2 items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-gold-light opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100">
                         Explore
-                      </span>
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-ink shadow-lg transition duration-500 group-hover:rotate-45 group-hover:bg-gold">
-                        <ArrowUpRight size={18} />
                       </span>
                     </div>
                     <span className="mt-3 block h-[2px] w-8 rounded-full bg-gold transition-all duration-500 group-hover:w-full" />
@@ -109,6 +111,7 @@ export default function ShopCategory() {
             );
           })}
         </div>
+        {catalogError && <p role="alert" className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">Category synchronization failed: {catalogError}</p>}
       </div>
     </section>
   );

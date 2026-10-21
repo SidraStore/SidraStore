@@ -20,13 +20,7 @@ export default function Lifestyle() {
         imgClassName="h-full w-full animate-kenburns object-cover object-[center_62%]"
         className="min-h-[380px]"
       >
-        {/* sunset glow pulsing over the sun */}
-        <div className="pointer-events-none absolute right-[22%] top-[42%] h-72 w-72 animate-glow rounded-full bg-[radial-gradient(circle,rgba(255,210,140,0.55),transparent_65%)] mix-blend-screen" />
         <Particles />
-
-        {/* fade into cream */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[45%] bg-gradient-to-r from-transparent via-cream/60 to-cream lg:block" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-cream lg:hidden" />
 
         {/* floating glass card */}
         <div className="absolute left-5 top-6 hidden animate-float items-center gap-3 rounded-2xl border border-white/40 bg-white/20 px-4 py-3 shadow-2xl backdrop-blur-md sm:flex lg:left-10 lg:top-10">
@@ -117,7 +111,7 @@ export default function Lifestyle() {
           </div>
 
           <div className="mt-8 flex items-center gap-6 sm:mt-12">
-            <a href="#" className="btn-gold group w-full !px-9 !py-4 !text-base sm:w-auto">
+            <a href="/our-story" className="btn-gold group w-full !px-7 !py-3.5 !text-base sm:w-auto">
               Know Our Story
             </a>
             <span className="hidden items-center gap-2 text-sm text-stone-500 sm:flex">

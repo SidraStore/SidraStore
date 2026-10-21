@@ -1,4 +1,5 @@
 import { Inter, Playfair_Display, Yellowtail } from "next/font/google";
+import StoreProviders from "@/components/StoreProviders";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -14,6 +15,11 @@ const script = Yellowtail({
 
 export const metadata = {
   title: "Sidra Store | Premium Attar & Islamic Lifestyle",
+  icons: {
+    icon: "/fevicon.png",
+    shortcut: "/fevicon.png",
+    apple: "/fevicon.png",
+  },
   description:
     "Discover premium attars, Islamic caps, surma, prayer essentials and more — crafted for a meaningful everyday life.",
 };
@@ -24,7 +30,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.variable} ${playfair.variable} ${script.variable} font-sans antialiased`}
       >
-        {children}
+        <StoreProviders>{children}</StoreProviders>
       </body>
     </html>
   );

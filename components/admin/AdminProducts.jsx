@@ -1,0 +1,145 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Eye, PackagePlus, Save, Search, Trash2, Upload } from "lucide-react";
+import SmartImage from "@/components/SmartImage";
+import CatalogDialog from "./CatalogDialog";
+import { notifyStorefrontUpdate } from "@/lib/storefrontSync";
+
+const inputClass = "mt-2 h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm outline-none transition focus:border-gold focus:ring-4 focus:ring-gold/10";
+
+async function uploadImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", "/sidra-store/products");
+  const response = await fetch("/api/admin/upload", { method: "POST", body: formData });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Upload failed");
+  return result.url;
+}
+
+function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
+  const [categoryId, setCategoryId] = useState(product?.category_id || categories[0]?.id || "");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const category = categories.find((item) => item.id === categoryId);
+
+  async function save(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      name: form.get("name"), category_id: categoryId, subcategory_id: form.get("subcategory_id") || null,
+      short_description: form.get("short_description"), description: form.get("description"),
+      price: form.get("price"), stock_quantity: form.get("stock_quantity"), image_url: form.get("image_url"),
+      badge: form.get("badge"), is_active: form.get("is_active") === "on",
+    };
+    const url = product ? `/api/admin/catalog/products/${product.id}` : "/api/admin/catalog/products";
+    const response = await fetch(url, { method: product ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const result = await response.json();
+    setSaving(false);
+    if (!response.ok) return setError(result.error || "Unable to save the product.");
+    notifyStorefrontUpdate("catalog");
+    onSaved();
+  }
+
+  async function remove() {
+    if (!product || !window.confirm(`Delete ${product.name}? This cannot be undone.`)) return;
+    const response = await fetch(`/api/admin/catalog/products/${product.id}`, { method: "DELETE" });
+    const result = await response.json();
+    if (!response.ok) return setError(result.error || "Unable to delete the product.");
+    notifyStorefrontUpdate("catalog");
+    onDeleted();
+  }
+
+  async function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const url = await uploadImage(file);
+      const input = event.target.form.elements.namedItem("image_url");
+      if (input) input.value = url;
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+      {product?.image_url && <SmartImage src={product.image_url} alt={product.name} className="h-52 rounded-2xl sm:col-span-2" imgClassName="h-full w-full object-contain" tone="from-cream to-stone-200" />}
+      <label className="text-sm font-semibold">Product name<input name="name" required defaultValue={product?.name || ""} className={inputClass} /></label>
+      <div className="sm:col-span-2">
+        <label className="text-sm font-semibold block">Image URL</label>
+        <div className="mt-2 flex gap-2">
+          <input name="image_url" required defaultValue={product?.image_url || ""} className={`${inputClass} flex-1`} placeholder="ImageKit URL" />
+          <label className="flex h-11 items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-4 text-sm font-semibold cursor-pointer transition hover:border-gold hover:bg-cream">
+            <Upload size={17} /> Upload
+            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="sr-only" />
+          </label>
+        </div>
+        {uploading && <p className="mt-1 text-sm text-gold-dark">Uploading...</p>}
+      </div>
+      <label className="text-sm font-semibold">Category<select name="category_id" required value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className={inputClass}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label className="text-sm font-semibold">Subcategory<select name="subcategory_id" defaultValue={product?.subcategory_id || ""} className={inputClass}><option value="">No subcategory</option>{category?.subcategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label className="text-sm font-semibold">Price (₹)<input name="price" type="number" min="0" step="0.01" required defaultValue={product?.price || ""} className={inputClass} /></label>
+      <label className="text-sm font-semibold">Stock quantity<input name="stock_quantity" type="number" min="0" step="1" required defaultValue={product?.stock_quantity ?? 0} className={inputClass} /></label>
+      <label className="text-sm font-semibold">Short description<input name="short_description" required defaultValue={product?.short_description || ""} className={inputClass} /></label>
+      <label className="text-sm font-semibold">Badge<input name="badge" defaultValue={product?.badge || ""} className={inputClass} placeholder="Optional" /></label>
+      <label className="text-sm font-semibold sm:col-span-2">Full description<textarea name="description" defaultValue={product?.description || ""} rows={4} className="mt-2 w-full rounded-xl border border-stone-200 p-3 text-sm outline-none focus:border-gold focus:ring-4 focus:ring-gold/10" /></label>
+      <label className="flex items-center gap-3 text-sm font-semibold sm:col-span-2"><input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true} className="h-4 w-4 accent-[#C99A4B]" /> Product is active</label>
+      {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{error}</p>}
+      <div className="flex flex-wrap justify-between gap-3 sm:col-span-2"><div>{product && <button type="button" onClick={remove} className="flex items-center gap-2 rounded-xl border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 size={16} /> Delete Product</button>}</div><div className="flex gap-3"><button type="button" onClick={onCancel} className="rounded-xl border px-5 py-3 text-sm font-semibold">Cancel</button><button disabled={saving} className="flex items-center gap-2 rounded-xl bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"><Save size={16} />{saving ? "Saving..." : "Save Product"}</button></div></div>
+    </form>
+  );
+}
+
+export default function AdminProducts() {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [selected, setSelected] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function loadCatalog() {
+    setLoading(true);
+    const [productResponse, categoryResponse] = await Promise.all([fetch("/api/admin/catalog/products", { cache: "no-store" }), fetch("/api/admin/catalog/categories", { cache: "no-store" })]);
+    const [productResult, categoryResult] = await Promise.all([productResponse.json(), categoryResponse.json()]);
+    setLoading(false);
+    if (!productResponse.ok || !categoryResponse.ok) return setError(productResult.error || categoryResult.error || "Unable to load the catalog.");
+    setProducts(productResult.products);
+    setCategories(categoryResult.categories);
+    setError("");
+  }
+
+  useEffect(() => { loadCatalog(); }, []);
+  const filteredProducts = useMemo(() => products.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(search.trim().toLowerCase());
+    const matchesCategory = categoryFilter === "All" || product.category_id === categoryFilter;
+    return matchesSearch && matchesCategory;
+  }), [products, search, categoryFilter]);
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-stone-200 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7">
+        <div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold-dark">Catalog</p><h2 className="mt-1 text-2xl font-bold">Products</h2><p className="mt-1 text-sm text-stone-500">{filteredProducts.length} of {products.length} products shown.</p></div>
+        <div className="flex gap-3"><a href="/all-products" target="_blank" className="rounded-xl border px-4 py-2.5 text-sm font-semibold hover:border-gold">Open Storefront</a><button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-gold hover:text-ink"><PackagePlus size={17} /> Add Product</button></div>
+      </div>
+      {error && <p role="alert" className="m-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-7">{error}</p>}
+      <div className="flex flex-col gap-3 border-b border-stone-200 p-5 sm:flex-row sm:px-7"><label className="flex h-11 flex-1 items-center gap-3 rounded-xl border px-3 focus-within:border-gold"><Search size={17} className="text-stone-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-11 rounded-xl border bg-white px-3 text-sm"><option value="All">All categories</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
+      {loading ? <p className="p-8 text-sm text-stone-500">Loading products...</p> : (
+        <div className="max-h-[650px] overflow-auto"><table className="w-full min-w-[880px] text-left"><thead className="sticky top-0 z-10 bg-stone-50 text-[11px] uppercase tracking-[0.14em] text-stone-500"><tr><th className="px-7 py-3">Product</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Status</th><th className="px-7 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-stone-100">{filteredProducts.map((product) => <tr key={product.id} className="text-sm hover:bg-cream/60"><td className="px-7 py-3"><div className="flex items-center gap-3"><SmartImage src={product.image_url} alt="" className="h-12 w-12 shrink-0 rounded-lg" imgClassName="h-full w-full object-cover" /><div><p className="font-semibold">{product.name}</p><p className="mt-0.5 text-xs text-stone-400">{product.subcategories?.name || "No subcategory"}</p></div></div></td><td className="px-5 py-3 text-stone-600">{product.categories?.name}</td><td className="px-5 py-3 font-semibold">₹{product.price}</td><td className="px-5 py-3">{product.stock_quantity}</td><td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${product.is_active ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-stone-500"}`}>{product.is_active ? "Active" : "Inactive"}</span></td><td className="px-7 py-3 text-right"><button onClick={() => setSelected(product)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold hover:border-gold hover:bg-cream"><Eye size={14} /> View & Edit</button></td></tr>)}</tbody></table></div>
+      )}
+      {(selected || creating) && <CatalogDialog title={creating ? "Add new product" : selected.name} subtitle={creating ? "Create a new item in the Sidra Store catalog." : "View, update, deactivate, or delete this product."} onClose={() => { setSelected(null); setCreating(false); }}><ProductForm product={creating ? null : selected} categories={categories} onCancel={() => { setSelected(null); setCreating(false); }} onSaved={async () => { setSelected(null); setCreating(false); await loadCatalog(); }} onDeleted={async () => { setSelected(null); await loadCatalog(); }} /></CatalogDialog>}
+    </section>
+  );
+}

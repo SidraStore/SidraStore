@@ -1,4 +1,4 @@
-import { ArrowRight, Clock, Droplets, FlaskConical, Landmark } from "lucide-react";
+import { Clock, Droplets, FlaskConical, Landmark } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import Particles from "./Particles";
@@ -52,8 +52,8 @@ export default function Essence() {
           <p className="mt-6 max-w-[360px] text-lg leading-relaxed text-stone-200">
             Deep, rich and long lasting fragrances for true connoisseurs.
           </p>
-          <a href="#" className="btn-gold mt-9">
-            Explore Collection <ArrowRight size={18} />
+          <a href="/all-products" className="btn-gold mt-9 !px-7 !py-3.5">
+            Explore Collection
           </a>
         </Reveal>
 

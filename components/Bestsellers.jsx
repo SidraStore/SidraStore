@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowRight,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +15,8 @@ import {
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import { products } from "@/lib/data";
+import { getProductPath } from "@/lib/productCatalog";
+import { useCart } from "./CartProvider";
 
 function Stars({ value }) {
   return (
@@ -30,6 +31,7 @@ function Stars({ value }) {
 }
 
 export default function Bestsellers() {
+  const { addItem } = useCart();
   const ref = useRef(null);
   const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
   const [progress, setProgress] = useState(0); // 0..1 scroll position
@@ -121,8 +123,8 @@ export default function Bestsellers() {
             </p>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
-            <a href="#" className="link-underline hidden items-center gap-2 text-sm font-semibold text-ink sm:flex">
-              View All <ArrowRight size={15} />
+            <a href="/attar-fragrances" className="link-underline hidden items-center text-sm font-semibold text-ink sm:flex">
+              View All
             </a>
             <button
               onClick={() => scroll(-1)}
@@ -170,6 +172,11 @@ export default function Bestsellers() {
                     className="h-[230px] w-full"
                     imgClassName="pointer-events-none h-full w-full object-cover transition duration-700 group-hover:scale-110"
                   >
+                    <a
+                      href={getProductPath(p)}
+                      aria-label={`View ${p.name} details`}
+                      className="absolute inset-0 z-[1]"
+                    />
                     {/* depth gradient */}
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/10" />
 
@@ -190,7 +197,7 @@ export default function Bestsellers() {
                       aria-label="Wishlist"
                       aria-pressed={liked}
                       onClick={() => toggle(setWish, p.name)}
-                      className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
+                      className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
                         liked ? "bg-red-500 text-white" : "bg-white/95 text-stone-600 hover:text-red-500"
                       }`}
                     >
@@ -198,13 +205,15 @@ export default function Bestsellers() {
                     </button>
 
                     {/* quick view slides up on hover */}
-                    <button className="absolute inset-x-4 bottom-4 flex translate-y-6 items-center justify-center gap-2 rounded-full bg-white/90 py-2 text-xs font-semibold text-ink opacity-0 shadow-lg backdrop-blur-sm transition duration-500 hover:bg-gold group-hover:translate-y-0 group-hover:opacity-100">
+                    <a href={getProductPath(p)} className="absolute inset-x-4 bottom-4 z-10 flex translate-y-6 items-center justify-center gap-2 rounded-full bg-white/90 py-2 text-xs font-semibold text-ink opacity-0 shadow-lg backdrop-blur-sm transition duration-500 hover:bg-gold group-hover:translate-y-0 group-hover:opacity-100">
                       <Eye size={14} /> Quick View
-                    </button>
+                    </a>
                   </SmartImage>
 
                   <div className="p-4">
-                    <h3 className="text-base font-bold leading-tight text-ink">{p.name}</h3>
+                    <h3 className="text-base font-bold leading-tight text-ink">
+                      <a href={getProductPath(p)} className="transition hover:text-gold-dark">{p.name}</a>
+                    </h3>
                     <p className="mt-0.5 text-[13px] text-stone-500">{p.sub}</p>
                     <div className="mt-2 flex items-center gap-1.5">
                       <Stars value={p.rating} />
@@ -216,7 +225,7 @@ export default function Bestsellers() {
                       {p.price}
                     </p>
                     <button
-                      onClick={() => toggle(setAdded, p.name, 1800)}
+                      onClick={() => { addItem(p, 1); toggle(setAdded, p.name, 1800); }}
                       className={`btn-gold-sm relative mt-3 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3 text-[13px] font-semibold transition duration-300 ${
                         isAdded
                           ? "bg-emerald-600 text-white"

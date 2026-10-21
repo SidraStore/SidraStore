@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, ChevronDown, Search, X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import Logo from "./Logo";
 
 // Slide-in drawer used for the mobile / tablet navigation (light theme).
@@ -88,7 +88,9 @@ export default function MobileSidebar({ open, onClose, items }) {
                     <span className="text-[11px] font-semibold tabular-nums text-gold-dark/70">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span className="text-[17px] font-semibold">{item.label}</span>
+                    <span className="text-[17px] font-semibold transition hover:text-gold-dark">
+                      {item.label}
+                    </span>
                     {item.badge && (
                       <span className="rounded-full bg-gradient-to-b from-gold-light to-gold px-2 py-0.5 text-[9px] font-bold uppercase leading-none text-ink">
                         {item.badge}
@@ -124,7 +126,7 @@ export default function MobileSidebar({ open, onClose, items }) {
                     </button>
                   ) : (
                     <a
-                      href="#"
+                      href={item.href || "#"}
                       onClick={onClose}
                       className="flex items-center justify-between py-4 transition hover:text-gold-dark"
                     >
@@ -141,17 +143,13 @@ export default function MobileSidebar({ open, onClose, items }) {
                       <div className="overflow-hidden">
                         <ul className="mb-3 ml-[34px] space-y-1 border-l-2 border-gold/40 pl-4">
                           {item.children.map((c) => (
-                            <li key={c}>
+                            <li key={c.name}>
                               <a
-                                href="#"
+                                href={c.href}
                                 onClick={onClose}
-                                className="group/c flex items-center justify-between rounded-lg py-2 pr-2 text-[15px] text-stone-600 transition hover:text-gold-dark"
+                                className="group/c flex items-center rounded-lg py-2 pr-2 text-[15px] text-stone-600 transition hover:text-gold-dark"
                               >
-                                {c}
-                                <ArrowRight
-                                  size={14}
-                                  className="-translate-x-2 text-gold-dark opacity-0 transition duration-300 group-hover/c:translate-x-0 group-hover/c:opacity-100"
-                                />
+                                {c.name}
                               </a>
                             </li>
                           ))}
@@ -167,8 +165,8 @@ export default function MobileSidebar({ open, onClose, items }) {
 
         {/* bottom: CTA */}
         <div className="relative border-t border-gold/30 bg-white/80 px-6 pb-6 pt-5 backdrop-blur-sm">
-          <a href="#" onClick={onClose} className="btn-gold w-full !py-3.5 !text-[15px]">
-            Shop Collection <ArrowRight size={17} />
+          <a href="/all-products" onClick={onClose} className="btn-gold w-full !py-3.5 !text-[15px]">
+            Shop Collection
           </a>
 
         </div>

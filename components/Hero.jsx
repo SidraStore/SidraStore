@@ -1,8 +1,11 @@
-import { ArrowRight, ShieldCheck, Truck, Users } from "lucide-react";
+"use client";
+
+import { ShieldCheck, Truck, Users } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Particles from "./Particles";
 import Parallax from "./Parallax";
 import Sparkles from "./Sparkles";
+import { useStorefrontContent } from "./useStorefrontData";
 
 const badges = [
   { icon: ShieldCheck, a: "100% Authentic", b: "Products" },
@@ -80,12 +83,23 @@ function Seal({ className = "", text = "text-[11px]" }) {
 }
 
 export default function Hero() {
+  const { data: storefrontContent } = useStorefrontContent();
+  const slide = storefrontContent.hero_slides[0];
+  const heroTitle = slide?.title || "Fragrance Inspired by Faith";
+  const titleWords = heroTitle.split(/\s+/);
+  const highlightedWord = titleWords.pop();
+  const titleLead = titleWords.join(" ");
+  const heroDescription = slide?.subtitle || "Discover premium attars, Islamic caps, surma, prayer essentials and more — crafted for a meaningful everyday life.";
+  const desktopImage = slide?.desktop_image_url || "/images/hero1.png";
+  const mobileImage = slide?.mobile_image_url || desktopImage;
+  const ctaLabel = slide?.cta_label || "Shop Collection";
+  const ctaHref = slide?.cta_href || "/shop";
   return (
     <section className="relative isolate overflow-hidden bg-ink text-white">
       {/* ───────── desktop background — drifts opposite to the mouse ───────── */}
       <Parallax depth={18} className="absolute -inset-6 -z-30 hidden lg:block">
         <SmartImage
-          src="/images/hero1.png"
+          src={desktopImage}
           tone="from-ink via-[#3a2410] to-[#8a5a2b]"
           imgClassName="h-full w-full animate-kenburns object-cover object-center"
           className="absolute inset-0"
@@ -94,14 +108,14 @@ export default function Hero() {
 
       {/* ───────── mobile background (heromobile.png, falls back to the desktop photo) ───────── */}
       <SmartImage
-        src="/images/heromobile.png"
+        src={mobileImage}
         alt="Sidra attars"
         tone="from-ink via-[#3a2410] to-[#8a5a2b]"
         imgClassName="h-full w-full animate-kenburns object-cover object-center"
         className="absolute inset-0 -z-30 lg:hidden"
         fallback={
           // eslint-disable-next-line @next/next/no-img-element
-          <img src="/images/hero1.png" alt="" className="h-full w-full object-cover object-[72%_center]" />
+          <img src={desktopImage} alt="" className="h-full w-full object-cover object-[72%_center]" />
         }
       />
 
@@ -125,12 +139,10 @@ export default function Hero() {
           style={delay(0.15)}
           className="animate-fade-up font-serif text-[40px] font-semibold leading-[1.1] drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] sm:text-6xl"
         >
-          Fragrance
-          <br />
-          Inspired by
+          {titleLead}
           <br />
           <span className="relative inline-block">
-            <span className="text-shimmer">Faith</span>
+            <span className="text-shimmer">{highlightedWord}</span>
             <Underline className="absolute -bottom-2 left-0 h-4 w-full" />
           </span>
         </h1>
@@ -139,16 +151,15 @@ export default function Hero() {
           style={delay(0.35)}
           className="mt-4 max-w-[330px] animate-fade-up text-[14.5px] leading-relaxed text-stone-100 drop-shadow sm:max-w-[420px] sm:text-base"
         >
-          Discover premium attars, Islamic caps, surma, prayer essentials and
-          more — crafted for a meaningful everyday life.
+          {heroDescription}
         </p>
 
         <a
-          href="#"
+          href={ctaHref}
           style={delay(0.5)}
-          className="btn-gold mt-6 w-[185px] animate-fade-up !px-5 !py-3 !text-[14px]"
+          className="btn-gold mt-6 w-[170px] animate-fade-up !px-5 !py-3 !text-[14px]"
         >
-          Shop Collection <ArrowRight size={16} />
+          {ctaLabel}
         </a>
 
         {/* seal on the right, over the arch */}
@@ -187,12 +198,10 @@ export default function Hero() {
             style={delay(0.25)}
             className="animate-fade-up font-serif text-[clamp(60px,6.1vw,92px)] font-semibold leading-[1.08] drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
           >
-            Fragrance
-            <br />
-            Inspired by
+            {titleLead}
             <br />
             <span className="relative inline-block">
-              <span className="text-shimmer">Faith</span>
+              <span className="text-shimmer">{highlightedWord}</span>
               <Underline className="absolute -bottom-2.5 left-0 h-5 w-full" />
             </span>
           </h1>
@@ -201,13 +210,12 @@ export default function Hero() {
             style={delay(0.45)}
             className="mt-7 max-w-[500px] animate-fade-up text-[17px] leading-relaxed text-stone-200"
           >
-            Discover premium attars, Islamic caps, surma, prayer essentials and
-            more — crafted for a meaningful everyday life.
+            {heroDescription}
           </p>
 
           <div style={delay(0.6)} className="mt-9 flex animate-fade-up flex-wrap items-center gap-5">
-            <a href="#" className="btn-gold !px-9 !py-4 !text-[15px]">
-              Shop Collection <ArrowRight size={17} />
+            <a href={ctaHref} className="btn-gold !px-7 !py-3.5 !text-[15px]">
+              {ctaLabel}
             </a>
           </div>
 
