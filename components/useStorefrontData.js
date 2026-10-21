@@ -12,6 +12,7 @@ export function mapStorefrontProduct(product, fallbackProduct) {
     id: product.id,
     slug: product.slug,
     src: product.image_url,
+    galleryUrls: Array.isArray(product.gallery_urls) ? product.gallery_urls : [],
     name: product.name,
     desc: product.short_description,
     description: product.description,
@@ -23,6 +24,7 @@ export function mapStorefrontProduct(product, fallbackProduct) {
     categorySlug: product.categories?.slug,
     subCategory: product.subcategories?.name || "General",
     badge: product.badge,
+    variants: Array.isArray(product.variants) ? product.variants : (fallbackProduct?.variants || []),
     tone: fallbackProduct?.tone || "from-stone-200 to-cream",
   };
 }

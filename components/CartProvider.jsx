@@ -9,9 +9,11 @@ const CartContext = createContext(null);
 
 function normalizeCartItem(product, quantity) {
   const variant = product.variant;
+  const productSlug = product.slug || createProductSlug(product.name);
   const variantKey = variant ? `-${variant.size}` : "";
   return {
-    slug: (product.slug || createProductSlug(product.name)) + variantKey,
+    slug: productSlug + variantKey,
+    productSlug,
     name: product.name + (variant ? ` (${variant.size})` : ""),
     price: Number(variant?.price ?? product.price),
     src: product.src,
@@ -48,7 +50,7 @@ export function CartProvider({ children }) {
     if (!loaded || !catalogProducts.length) return;
     const currentItems = itemsRef.current;
     const nextItems = currentItems.map((item) => {
-        const itemProductSlug = item.slug.replace(/-(6ml|12ml)$/, "");
+        const itemProductSlug = item.productSlug || item.slug.replace(/-(6ml|12ml)$/, "");
         const product = catalogProducts.find(
           (candidate) => (candidate.slug || createProductSlug(candidate.name)) === itemProductSlug,
         );
@@ -66,6 +68,7 @@ export function CartProvider({ children }) {
 
         return {
           ...item,
+          productSlug: itemProductSlug,
           name: product.name + (variant ? ` (${variant.size})` : ""),
           price: Number(variant?.price ?? product.price),
           src: product.src,
@@ -117,7 +120,10 @@ export function CartProvider({ children }) {
   }, []);
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
-  const value = useMemo(() => ({ items, itemCount, subtotal, catalogError, addItem, updateQuantity, removeItem, clearCart }), [items, itemCount, subtotal, catalogError, addItem, updateQuantity, removeItem, clearCart]);
+  const value = useMemo(
+    () => ({ items, itemCount, subtotal, catalogProducts, catalogError, addItem, updateQuantity, removeItem, clearCart }),
+    [items, itemCount, subtotal, catalogProducts, catalogError, addItem, updateQuantity, removeItem, clearCart],
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

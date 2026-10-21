@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Eye, ShoppingCart, Star, StarHalf, Tag, Filter, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Eye, ShoppingCart, Star, StarHalf, Tag, Filter, ChevronDown } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import Particles from "./Particles";
@@ -127,6 +127,8 @@ export default function AllProducts() {
   const [maximumPriceOverride, setMaximumPriceOverride] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
+  const [productsPerPage, setProductsPerPage] = useState(12);
+  const [currentPage, setCurrentPage] = useState(1);
   const maximumPrice = Math.min(maximumPriceOverride ?? maximumCatalogPrice, maximumCatalogPrice);
 
   const toggle = (setter, name, ms) =>
@@ -168,6 +170,21 @@ export default function AllProducts() {
       default: return 0;
     }
   }), [filteredProducts, sortBy]);
+  const pageCount = Math.max(1, Math.ceil(sortedProducts.length / productsPerPage));
+  const activePage = Math.min(currentPage, pageCount);
+  const paginatedProducts = useMemo(
+    () => sortedProducts.slice((activePage - 1) * productsPerPage, activePage * productsPerPage),
+    [activePage, productsPerPage, sortedProducts],
+  );
+  const visiblePages = useMemo(() => {
+    const start = Math.max(1, Math.min(activePage - 2, pageCount - 4));
+    const end = Math.min(pageCount, start + 4);
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  }, [activePage, pageCount]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [maximumPriceOverride, productsPerPage, selectedCategories, sortBy]);
 
   return (
     <section className="relative isolate overflow-clip bg-cream py-20 lg:py-24">
@@ -231,7 +248,14 @@ export default function AllProducts() {
           <p className="hidden text-sm text-stone-500 lg:block">
             Showing <span className="font-semibold text-ink">{filteredProducts.length}</span> of {products.length} products
           </p>
-          <div className="relative ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <label className="hidden items-center gap-2 text-xs font-semibold text-stone-500 sm:flex">
+              Per page
+              <select value={productsPerPage} onChange={(event) => setProductsPerPage(Number(event.target.value))} className="rounded-full border border-gold/30 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-gold">
+                {[12, 24, 36].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+            <div className="relative">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -245,6 +269,7 @@ export default function AllProducts() {
               <option value="newest">Most Reviewed</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" size={16} />
+            </div>
           </div>
         </div>
 
@@ -270,12 +295,12 @@ export default function AllProducts() {
 
           <div>
             <p className="mb-5 text-sm text-stone-500 lg:hidden">
-              Showing <span className="font-semibold text-ink">{filteredProducts.length}</span> of {products.length} products
+              Showing <span className="font-semibold text-ink">{paginatedProducts.length}</span> of {filteredProducts.length} matching products
             </p>
 
         {/* Grid: 3 cols desktop, 2 tablet, 1 mobile */}
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {sortedProducts.map((p, i) => {
+          {paginatedProducts.map((p, i) => {
             const isAdded = added.has(p.name);
             return (
               <Reveal key={p.name} delay={i * 40}>
@@ -374,6 +399,14 @@ export default function AllProducts() {
             );
           })}
         </div>
+
+        {filteredProducts.length > 0 && (
+          <nav aria-label="Product pagination" className="mt-9 flex flex-wrap items-center justify-center gap-2">
+            <button type="button" disabled={activePage === 1} onClick={() => { setCurrentPage((page) => Math.max(1, page - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-10 items-center gap-1 rounded-full border border-gold/30 bg-white px-4 text-sm font-semibold transition hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft size={16} /> Previous</button>
+            {visiblePages.map((page) => <button key={page} type="button" aria-current={page === activePage ? "page" : undefined} onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: "smooth" }); }} className={`h-10 min-w-10 rounded-full border px-3 text-sm font-bold transition ${page === activePage ? "border-gold bg-gold text-ink" : "border-stone-200 bg-white hover:border-gold"}`}>{page}</button>)}
+            <button type="button" disabled={activePage === pageCount} onClick={() => { setCurrentPage((page) => Math.min(pageCount, page + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-10 items-center gap-1 rounded-full border border-gold/30 bg-white px-4 text-sm font-semibold transition hover:border-gold disabled:cursor-not-allowed disabled:opacity-40">Next <ChevronRight size={16} /></button>
+          </nav>
+        )}
 
         {filteredProducts.length === 0 && (
           <div className="rounded-3xl border border-gold/20 bg-white py-16 text-center shadow-sm">

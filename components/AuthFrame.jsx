@@ -15,12 +15,16 @@ export default function AuthFrame({ eyebrow, title, description, children, foote
         <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-gold/[0.07]" />
 
         <div className="relative text-center">
-          <a href="/" aria-label="Go to Sidra Store home" className="inline-flex transition duration-300 hover:scale-105">
-            <Logo className="h-14 sm:h-16" />
-          </a>
+          <div className="flex justify-center">
+            <a href="/" aria-label="Go to Sidra Store home" className="inline-flex transition duration-300 hover:scale-105">
+              <Logo className="h-14 sm:h-16" />
+            </a>
+          </div>
 
-          <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-gold/35 bg-gold/[0.08] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dark">
-            <Sparkles size={13} /> {eyebrow}
+          <div className="mt-5 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-gold/35 bg-gold/[0.08] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dark">
+              <Sparkles size={13} /> {eyebrow}
+            </span>
           </div>
           <h1 className="mt-4 font-serif text-4xl font-semibold leading-tight sm:text-[44px]">{title}</h1>
           <div className="mx-auto mt-3 h-0.5 w-12 rounded-full bg-gradient-to-r from-gold-dark to-gold-light" />

@@ -23,6 +23,8 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState(() => [...new Set([product?.image_url, ...(product?.gallery_urls || [])].filter(Boolean))]);
   const category = categories.find((item) => item.id === categoryId);
 
   async function save(event) {
@@ -30,10 +32,15 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
     setSaving(true);
     setError("");
     const form = new FormData(event.currentTarget);
+    if (!imageUrls.length) {
+      setError("Add at least one product image.");
+      setSaving(false);
+      return;
+    }
     const payload = {
       name: form.get("name"), category_id: categoryId, subcategory_id: form.get("subcategory_id") || null,
       short_description: form.get("short_description"), description: form.get("description"),
-      price: form.get("price"), stock_quantity: form.get("stock_quantity"), image_url: form.get("image_url"),
+      price: form.get("price"), stock_quantity: form.get("stock_quantity"), image_url: imageUrls[0], gallery_urls: imageUrls.slice(1),
       badge: form.get("badge"), is_active: form.get("is_active") === "on",
     };
     const url = product ? `/api/admin/catalog/products/${product.id}` : "/api/admin/catalog/products";
@@ -55,14 +62,13 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
   }
 
   async function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
     setUploading(true);
     setError("");
     try {
-      const url = await uploadImage(file);
-      const input = event.target.form.elements.namedItem("image_url");
-      if (input) input.value = url;
+      const urls = await Promise.all(files.map(uploadImage));
+      setImageUrls((current) => [...new Set([...current, ...urls])]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -71,20 +77,37 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
     }
   }
 
+  function addImageUrl() {
+    const url = newImageUrl.trim();
+    if (!/^https?:\/\//i.test(url) && !url.startsWith("/")) {
+      setError("Enter a valid image URL.");
+      return;
+    }
+    setImageUrls((current) => [...new Set([...current, url])]);
+    setNewImageUrl("");
+    setError("");
+  }
+
+  function makePrimary(index) {
+    setImageUrls((current) => [current[index], ...current.filter((_, imageIndex) => imageIndex !== index)]);
+  }
+
   return (
     <form onSubmit={save} className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
-      {product?.image_url && <SmartImage src={product.image_url} alt={product.name} className="h-52 rounded-2xl sm:col-span-2" imgClassName="h-full w-full object-contain" tone="from-cream to-stone-200" />}
+      {imageUrls.length > 0 && <div className="grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-4">{imageUrls.map((url, index) => <div key={url} className={`overflow-hidden rounded-2xl border bg-cream ${index === 0 ? "border-gold ring-2 ring-gold/20" : "border-stone-200"}`}><SmartImage src={url} alt={`${product?.name || "Product"} image ${index + 1}`} className="aspect-square" imgClassName="h-full w-full object-contain" /><div className="flex items-center justify-between gap-2 border-t bg-white p-2"><button type="button" disabled={index === 0} onClick={() => makePrimary(index)} className="text-[11px] font-semibold text-gold-dark disabled:text-emerald-600">{index === 0 ? "Primary" : "Set primary"}</button><button type="button" onClick={() => setImageUrls((current) => current.filter((item) => item !== url))} className="text-[11px] font-semibold text-red-600">Remove</button></div></div>)}</div>}
       <label className="text-sm font-semibold">Product name<input name="name" required defaultValue={product?.name || ""} className={inputClass} /></label>
       <div className="sm:col-span-2">
-        <label className="text-sm font-semibold block">Image URL</label>
+        <label className="text-sm font-semibold block">Product images</label>
         <div className="mt-2 flex gap-2">
-          <input name="image_url" required defaultValue={product?.image_url || ""} className={`${inputClass} flex-1`} placeholder="ImageKit URL" />
+          <input value={newImageUrl} onChange={(event) => setNewImageUrl(event.target.value)} className="h-11 min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3 text-sm outline-none focus:border-gold" placeholder="ImageKit or image URL" />
+          <button type="button" onClick={addImageUrl} className="h-11 rounded-xl border px-4 text-sm font-semibold hover:border-gold">Add URL</button>
           <label className="flex h-11 items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-4 text-sm font-semibold cursor-pointer transition hover:border-gold hover:bg-cream">
             <Upload size={17} /> Upload
-            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="sr-only" />
+            <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} className="sr-only" />
           </label>
         </div>
-        {uploading && <p className="mt-1 text-sm text-gold-dark">Uploading...</p>}
+        <p className="mt-2 text-xs text-stone-500">The first image is the main image. Upload or add multiple URLs, then choose the primary image.</p>
+        {uploading && <p className="mt-1 text-sm text-gold-dark">Uploading images...</p>}
       </div>
       <label className="text-sm font-semibold">Category<select name="category_id" required value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className={inputClass}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="text-sm font-semibold">Subcategory<select name="subcategory_id" defaultValue={product?.subcategory_id || ""} className={inputClass}><option value="">No subcategory</option>{category?.subcategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>

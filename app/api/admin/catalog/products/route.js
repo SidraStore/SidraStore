@@ -18,6 +18,7 @@ function productPayload(body) {
     price,
     stock_quantity: stockQuantity,
     image_url: String(body.image_url).trim(),
+    gallery_urls: Array.isArray(body.gallery_urls) ? [...new Set(body.gallery_urls.map((url) => String(url).trim()).filter(Boolean))] : [],
     badge: String(body.badge || "").trim() || null,
     is_active: body.is_active !== false,
   };
@@ -26,7 +27,7 @@ function productPayload(body) {
 export async function GET(request) {
   if (!isAuthorizedAdminRequest(request)) return NextResponse.json({ error: "Administrator authentication is required." }, { status: 401 });
   const supabase = createAdminCatalogClient();
-  const { data, error } = await supabase.from("products").select("id,name,slug,category_id,subcategory_id,short_description,description,price,stock_quantity,image_url,badge,rating,review_count,is_active,categories(name),subcategories(name)").order("created_at");
+  const { data, error } = await supabase.from("products").select("id,name,slug,category_id,subcategory_id,short_description,description,price,stock_quantity,image_url,gallery_urls,variants,badge,rating,review_count,is_active,categories(name),subcategories(name)").order("created_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ products: data });
 }

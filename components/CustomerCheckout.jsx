@@ -76,7 +76,7 @@ export default function CustomerCheckout({ user, customer, address }) {
       return;
     }
 
-    const cartItems = items.map((item) => ({ slug: item.slug, quantity: item.quantity }));
+    const cartItems = items.map((item) => ({ slug: item.productSlug || item.slug, quantity: item.quantity, variant_size: item.variant?.size || null }));
     const { error: cartError } = await supabase.rpc("save_customer_cart", { p_items: cartItems });
     if (cartError) {
       setMessage(cartError.message);
@@ -102,7 +102,7 @@ export default function CustomerCheckout({ user, customer, address }) {
           <CheckCircle2 size={58} className="mx-auto text-emerald-600" />
           <h1 className="mt-5 font-serif text-4xl font-semibold">Order confirmed</h1>
           <p className="mt-3 text-stone-600">Your order number is <strong>{orderNumber}</strong>. Payment will be collected on delivery.</p>
-          <a href="/all-products" className="btn-gold mt-7 inline-flex">Continue Shopping</a>
+          <div className="mt-7 flex flex-wrap justify-center gap-3"><a href="/account" className="rounded-full border border-gold/50 px-6 py-3 text-sm font-semibold hover:bg-gold/10">View Order History</a><a href="/shop" className="btn-gold inline-flex">Continue Shopping</a></div>
         </div>
       </main>
     );
@@ -124,13 +124,13 @@ export default function CustomerCheckout({ user, customer, address }) {
           <form id="checkout-form" onSubmit={placeOrder} className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-xl font-bold">Delivery address</h2>
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
-              <label className="text-sm font-semibold">Full name<input name="full_name" required defaultValue={address?.recipient_name || customer?.full_name || ""} className={fieldClass} /></label>
-              <label className="text-sm font-semibold">Phone number<input name="phone" type="tel" required defaultValue={address?.phone || customer?.phone || ""} className={fieldClass} /></label>
+              <label className="text-sm font-semibold">Full name<input name="full_name" required minLength={2} defaultValue={address?.recipient_name || customer?.full_name || ""} className={fieldClass} /></label>
+              <label className="text-sm font-semibold">Phone number<input name="phone" type="tel" required minLength={7} maxLength={20} pattern="[0-9+() -]{7,20}" defaultValue={address?.phone || customer?.phone || ""} className={fieldClass} /></label>
               <label className="text-sm font-semibold sm:col-span-2">Email address<input type="email" value={user.email} readOnly className={`${fieldClass} bg-stone-50 text-stone-500`} /></label>
-              <label className="text-sm font-semibold sm:col-span-2">Address line 1<input name="address_line_1" required defaultValue={address?.address_line_1 || ""} className={fieldClass} /></label>
+              <label className="text-sm font-semibold sm:col-span-2">Address line 1<input name="address_line_1" required minLength={5} defaultValue={address?.address_line_1 || ""} className={fieldClass} /></label>
               <label className="text-sm font-semibold sm:col-span-2">Address line 2 <span className="font-normal text-stone-400">(optional)</span><input name="address_line_2" defaultValue={address?.address_line_2 || ""} className={fieldClass} /></label>
-              <label className="text-sm font-semibold">City<input name="city" required defaultValue={address?.city || ""} className={fieldClass} /></label>
-              <label className="text-sm font-semibold">State<input name="state" required defaultValue={address?.state || "Madhya Pradesh"} className={fieldClass} /></label>
+              <label className="text-sm font-semibold">City<input name="city" required minLength={2} defaultValue={address?.city || ""} className={fieldClass} /></label>
+              <label className="text-sm font-semibold">State<input name="state" required minLength={2} defaultValue={address?.state || "Madhya Pradesh"} className={fieldClass} /></label>
               <label className="text-sm font-semibold">PIN code<input name="postal_code" inputMode="numeric" pattern="[0-9]{6}" required defaultValue={address?.postal_code || ""} className={fieldClass} /></label>
               <label className="text-sm font-semibold">Country<input value="India" readOnly className={`${fieldClass} bg-stone-50 text-stone-500`} /></label>
             </div>

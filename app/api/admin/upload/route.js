@@ -1,13 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
+import { isAuthorizedAdminRequest } from "@/lib/adminCatalog";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const imageKitPrivateKey = process.env.IMAGEKIT_PRIVATE_KEY;
 
 export const runtime = "nodejs";
 
 export async function POST(request) {
+  if (!isAuthorizedAdminRequest(request)) {
+    return new Response(JSON.stringify({ error: "Administrator authentication is required." }), { status: 401 });
+  }
   if (!imageKitPrivateKey) {
     return new Response(JSON.stringify({ error: "IMAGEKIT_PRIVATE_KEY not configured" }), { status: 500 });
   }
@@ -19,6 +20,12 @@ export async function POST(request) {
 
     if (!file || !(file instanceof Blob)) {
       return new Response(JSON.stringify({ error: "No file provided" }), { status: 400 });
+    }
+    if (!file.type.startsWith("image/")) {
+      return new Response(JSON.stringify({ error: "Only image files can be uploaded." }), { status: 400 });
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: "Images must be 10 MB or smaller." }), { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();

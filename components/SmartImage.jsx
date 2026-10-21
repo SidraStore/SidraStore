@@ -40,6 +40,7 @@ export default function SmartImage({
   fallback = null,
   loading = "lazy",
   fetchPriority = "auto",
+  style,
   children,
 }) {
   const resolvedSrc = resolveImageSource(src);
@@ -65,7 +66,7 @@ export default function SmartImage({
   const position = /\b(absolute|fixed|sticky)\b/.test(className) ? "" : "relative";
 
   return (
-    <div className={`${position} overflow-hidden bg-gradient-to-br ${tone} ${className}`}>
+    <div style={style} className={`${position} overflow-hidden bg-gradient-to-br ${tone} ${className}`}>
       {resolvedSrc && !failed ? (
         <>
           <img

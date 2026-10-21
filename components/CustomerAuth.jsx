@@ -5,10 +5,18 @@ import { Eye, EyeOff, LockKeyhole, LogIn, Mail, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import AuthFrame from "./AuthFrame";
 
-export default function CustomerAuth({ nextPath }) {
+function validatePassword(password) {
+  if (password.length < 8) return "Password must contain at least 8 characters.";
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return "Password must include an uppercase letter, a lowercase letter, and a number.";
+  }
+  return "";
+}
+
+export default function CustomerAuth({ nextPath, initialError }) {
   const [mode, setMode] = useState("login");
   const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState({ type: "", message: "" });
+  const [status, setStatus] = useState({ type: initialError ? "error" : "", message: initialError || "" });
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event) {
@@ -18,7 +26,21 @@ export default function CustomerAuth({ nextPath }) {
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") || "").trim();
     const password = String(form.get("password") || "");
+    const confirmPassword = String(form.get("confirmPassword") || "");
     const fullName = String(form.get("fullName") || "").trim();
+    if (mode === "register") {
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        setStatus({ type: "error", message: passwordError });
+        setSubmitting(false);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setStatus({ type: "error", message: "Passwords do not match." });
+        setSubmitting(false);
+        return;
+      }
+    }
     const supabase = createClient();
 
     const result = mode === "register"
@@ -66,7 +88,7 @@ export default function CustomerAuth({ nextPath }) {
                 <span className="sr-only">Full name</span>
                 <span className="flex h-14 items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 shadow-sm transition focus-within:border-gold focus-within:ring-4 focus-within:ring-gold/10">
                   <UserRound size={18} className="text-gold-dark" />
-                  <input name="fullName" required autoComplete="name" className="h-full w-full bg-transparent text-sm outline-none placeholder:text-stone-400" placeholder="Full name" />
+                  <input name="fullName" required minLength={2} autoComplete="name" className="h-full w-full bg-transparent text-sm outline-none placeholder:text-stone-400" placeholder="Full name" />
                 </span>
               </label>
             )}
@@ -87,6 +109,15 @@ export default function CustomerAuth({ nextPath }) {
                 </button>
               </span>
             </label>
+            {mode === "register" && (
+              <label className="block">
+                <span className="sr-only">Confirm password</span>
+                <span className="flex h-14 items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 shadow-sm transition focus-within:border-gold focus-within:ring-4 focus-within:ring-gold/10">
+                  <LockKeyhole size={18} className="text-gold-dark" />
+                  <input name="confirmPassword" type={showPassword ? "text" : "password"} minLength={8} required autoComplete="new-password" className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400" placeholder="Confirm password" />
+                </span>
+              </label>
+            )}
 
             {status.message && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${status.type === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{status.message}</p>}
             <button disabled={submitting} className="group flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-gold-dark via-gold to-gold-dark px-6 text-sm font-bold uppercase tracking-[0.08em] text-white shadow-[0_14px_32px_-16px_rgba(168,122,50,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-14px_rgba(168,122,50,0.8)] disabled:cursor-not-allowed disabled:opacity-60">

@@ -17,6 +17,7 @@ function buildPayload(body) {
     price,
     stock_quantity: stockQuantity,
     image_url: String(body.image_url).trim(),
+    gallery_urls: Array.isArray(body.gallery_urls) ? [...new Set(body.gallery_urls.map((url) => String(url).trim()).filter(Boolean))] : [],
     badge: String(body.badge || "").trim() || null,
     is_active: body.is_active !== false,
   };

@@ -19,6 +19,8 @@ import Reveal from "./Reveal";
 import { getProductPath } from "@/lib/productCatalog";
 import { useCart } from "./CartProvider";
 import { useStorefrontCatalog } from "./useStorefrontData";
+import ProductGallery from "./ProductGallery";
+import ProductReviews from "./ProductReviews";
 
 function Stars({ value, size }) {
   return (
@@ -97,14 +99,8 @@ export default function ProductDetails({ product: initialProduct, similarProduct
           <div className="grid min-w-0 items-start gap-9 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
             <Reveal from="left">
               <div className="relative overflow-hidden rounded-[32px] border border-gold/20 bg-white p-3 shadow-[0_28px_70px_-35px_rgba(21,16,12,0.55)] sm:p-5">
-                <SmartImage
-                  src={product.src}
-                  alt={product.name}
-                  tone={product.tone}
-                  className="aspect-square w-full overflow-hidden rounded-[24px]"
-                  imgClassName="h-full w-full object-cover"
-                />
-                <span className="absolute left-7 top-7 rounded-full border border-gold/30 bg-white/90 px-3 py-1.5 text-xs font-bold text-stone-700 shadow-sm backdrop-blur-sm">
+                <ProductGallery product={product} />
+                <span className="absolute left-7 top-7 rounded-full border border-gold/30 bg-white/90 px-3 py-1.5 text-xs font-bold text-stone-700 shadow-sm backdrop-blur-sm sm:left-[116px]">
                   {product.subCategory}
                 </span>
                 {product.badge && (
@@ -226,6 +222,8 @@ export default function ProductDetails({ product: initialProduct, similarProduct
           </div>
         </div>
       </section>
+
+      <ProductReviews productSlug={product.slug || initialProduct.slug} />
 
       <section className="border-t border-gold/15 bg-white py-16 lg:py-20">
         <div className="container-site">

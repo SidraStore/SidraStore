@@ -9,5 +9,9 @@ export default function LoginPage({ searchParams }) {
     ? searchParams.next
     : "/checkout";
 
-  return <CustomerAuth nextPath={nextPath} />;
+  const initialError = searchParams?.error === "confirmation"
+    ? "That confirmation link is invalid or has expired. Please sign in or register again."
+    : "";
+
+  return <CustomerAuth nextPath={nextPath} initialError={initialError} />;
 }

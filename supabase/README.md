@@ -10,8 +10,13 @@ This directory keeps database and authorization SQL separate from application co
 6. `migrations/006_customer_checkout.sql`
 7. `migrations/007_seed_product_catalog.sql` (generated after ImageKit upload)
 8. `migrations/008_seed_category_images.sql`
+9. `migrations/009_normalize_category_slugs_and_images.sql`
+10. `migrations/010_seed_demo_orders_and_customers.sql`
+11. `migrations/011_storefront_sync_and_checkout_integrity.sql`
+12. `migrations/012_add_product_variants.sql`
+13. `migrations/013_product_media_reviews_and_cod.sql`
 
-Run `npm run upload:products` once to upload the product images in `public/Products` to ImageKit. The script reads credentials from `.env`, writes the returned public URLs to `data/imagekit-product-urls.json`, and generates `migrations/007_seed_product_catalog.sql`. Then run migration 007 in the Supabase SQL editor.
+Run `npm run upload:products` once to upload the product images in `public/products` to ImageKit. The script reads credentials from `.env`, writes the returned public URLs to `data/imagekit-product-urls.json`, and generates `migrations/007_seed_product_catalog.sql`. Then run migration 007 in the Supabase SQL editor.
 
 For customer signup confirmation, configure Supabase Auth URL settings with your production site URL and add `http://localhost:3000/**` while developing. The app uses Supabase email/password authentication and never sends the service-role key to the browser.
 

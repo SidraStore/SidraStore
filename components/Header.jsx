@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -9,17 +9,16 @@ import {
   Mail,
   MapPin,
   Phone,
-  Search,
   ShoppingBag,
   Sparkles,
   Truck,
   User,
-  X,
 } from "lucide-react";
 import Logo from "./Logo";
 import MobileSidebar from "./MobileSidebar";
 import { useCart } from "./CartProvider";
 import { useStorefrontContent } from "./useStorefrontData";
+import ProductSearch from "./ProductSearch";
 
 // rotating announcement in the top bar
 const defaultAnnouncements = [
@@ -62,8 +61,6 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchRef = useRef(null);
   const closeMenu = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
@@ -76,10 +73,6 @@ export default function Header() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
-  }, [searchOpen]);
 
   return (
     <header className="sticky top-0 z-50 animate-fade-in">
@@ -153,7 +146,7 @@ export default function Header() {
           <a
             href="/"
             aria-label="Sidra home"
-            className={`shrink-0 transition duration-300 hover:scale-105 ${searchOpen ? "hidden md:block" : ""}`}
+            className="shrink-0 transition duration-300 hover:scale-105"
           >
             <Logo className={`transition-all duration-500 ${scrolled ? "h-7 sm:h-8" : "h-9 sm:h-11"}`} />
           </a>
@@ -228,33 +221,10 @@ export default function Header() {
 
           {/* actions */}
           <div className="flex shrink-0 items-center gap-0.5 text-ink sm:gap-1.5">
-            {/* expanding search */}
-            <div
-              className={`flex items-center overflow-hidden rounded-full border transition-all duration-500 ${
-                searchOpen
-                  ? "w-[210px] border-gold/50 bg-cream pl-4 sm:w-[260px]"
-                  : "w-10 border-transparent sm:w-11"
-              }`}
-            >
-              <input
-                ref={searchRef}
-                type="search"
-                placeholder="Search attars, caps..."
-                tabIndex={searchOpen ? 0 : -1}
-                onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400"
-              />
-              <button
-                aria-label="Search"
-                onClick={() => setSearchOpen((v) => !v)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark sm:h-11 sm:w-11"
-              >
-                {searchOpen ? <X size={20} /> : <Search size={21} />}
-              </button>
-            </div>
+            <ProductSearch />
 
             <a
-              href="/login"
+              href="/account"
               aria-label="Account"
               className="hidden h-11 w-11 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark sm:flex"
             >

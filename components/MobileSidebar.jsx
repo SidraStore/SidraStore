@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Search, X, ShoppingBag } from "lucide-react";
+import { ChevronDown, X, ShoppingBag } from "lucide-react";
 import Logo from "./Logo";
 import { useCart } from "./CartProvider";
+import ProductSearch from "./ProductSearch";
 
 // Slide-in drawer used for the mobile / tablet navigation (light theme).
 export default function MobileSidebar({ open, onClose, items }) {
@@ -67,18 +68,7 @@ export default function MobileSidebar({ open, onClose, items }) {
 
         {/* scrollable body */}
         <div className="relative flex-1 overflow-y-auto px-6 pb-6 pt-5">
-          {/* search */}
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="flex items-center gap-3 rounded-full border border-stone-200 bg-white px-4 py-3 shadow-sm transition focus-within:border-gold focus-within:shadow-[0_0_0_3px_rgba(201,154,75,0.2)]"
-          >
-            <Search size={18} className="text-gold-dark" />
-            <input
-              type="search"
-              placeholder="Search attars, caps..."
-              className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-stone-400"
-            />
-          </form>
+          <ProductSearch expanded onNavigate={onClose} />
 
           {/* links */}
           <nav className="mt-4">

@@ -70,7 +70,7 @@ export default function CartPage() {
                       className="flex gap-4 border-b border-stone-100 pb-4 last:border-0 last:pb-0"
                     >
                       <Link
-                        href={`/products/${item.slug}`}
+                        href={`/products/${item.productSlug || item.slug}`}
                         className="h-24 w-24 shrink-0 rounded-xl overflow-hidden bg-stone-50"
                         aria-label={`View ${item.name}`}
                       >
@@ -83,7 +83,7 @@ export default function CartPage() {
                       </Link>
                       <div className="min-w-0 flex-1">
                         <Link
-                          href={`/products/${item.slug}`}
+                          href={`/products/${item.productSlug || item.slug}`}
                           className="truncate font-semibold text-ink hover:text-gold-dark transition block"
                         >
                           {item.name}
