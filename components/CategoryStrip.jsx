@@ -48,7 +48,7 @@ export default function CategoryStrip() {
           onPointerLeave={onUp}
           onClickCapture={onClickCapture}
           onDragStart={(e) => e.preventDefault()}
-          className="no-scrollbar -mx-4 flex touch-pan-x snap-x snap-proximity gap-3 overflow-x-auto overscroll-x-contain scroll-smooth px-4 pb-3 pt-1 [-webkit-overflow-scrolling:touch] sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-10 lg:gap-3 lg:overflow-visible lg:px-0"
+          className="no-scrollbar -mx-4 flex touch-pan-x snap-x snap-proximity gap-3 overflow-x-auto overscroll-x-contain scroll-smooth px-4 pb-3 pt-1 [-webkit-overflow-scrolling:touch] sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-7 lg:gap-3 lg:overflow-visible lg:px-0"
         >
           {stripCategories.map((c, i) => (
             <Reveal

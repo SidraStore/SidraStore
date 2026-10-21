@@ -5,14 +5,9 @@ import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import { shopCategories } from "@/lib/data";
-import { useStorefrontCatalog } from "./useStorefrontData";
 
 export default function ShopCategory() {
-  const { categories, error: catalogError } = useStorefrontCatalog([]);
-  const displayedCategories = categories.length ? categories.map((category) => {
-    const existing = shopCategories.find((item) => item.name === category.name);
-    return { name: category.name, img: category.image_url || existing?.img, tone: existing?.tone || "from-stone-600 to-ink", href: existing?.href || "/shop" };
-  }) : shopCategories;
+  const displayedCategories = shopCategories;
   const [wish, setWish] = useState(() => new Set());
   const toggle = (name) =>
     setWish((prev) => {
@@ -111,7 +106,6 @@ export default function ShopCategory() {
             );
           })}
         </div>
-        {catalogError && <p role="alert" className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">Category synchronization failed: {catalogError}</p>}
       </div>
     </section>
   );

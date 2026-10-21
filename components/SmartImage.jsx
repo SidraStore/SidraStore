@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Shows the image if the file exists in /public, otherwise falls back to the
-// gradient placeholder (or a custom `fallback` node) so the layout never breaks.
 export default function SmartImage({
   src,
   alt = "",
@@ -14,28 +12,52 @@ export default function SmartImage({
   children,
 }) {
   const [failed, setFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
   const imgRef = useRef(null);
 
-  // a missing file can fail before React attaches onError, so re-check on mount
   useEffect(() => {
     const el = imgRef.current;
-    if (el && el.complete && el.naturalWidth === 0) setFailed(true);
+    if (!el) return;
+    
+    const handleLoad = () => setLoading(false);
+    const handleError = () => {
+      setFailed(true);
+      setLoading(false);
+    };
+
+    el.addEventListener("load", handleLoad);
+    el.addEventListener("error", handleError);
+
+    if (el.complete) {
+      if (el.naturalWidth === 0) {
+        handleError();
+      } else {
+        handleLoad();
+      }
+    }
+
+    return () => {
+      el.removeEventListener("load", handleLoad);
+      el.removeEventListener("error", handleError);
+    };
   }, [src]);
 
-  // `relative` would override a caller's `absolute` (used for section backgrounds)
   const position = /\b(absolute|fixed|sticky)\b/.test(className) ? "" : "relative";
 
   return (
     <div className={`${position} overflow-hidden bg-gradient-to-br ${tone} ${className}`}>
-      {!failed && src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          ref={imgRef}
-          src={src}
-          alt={alt}
-          onError={() => setFailed(true)}
-          className={imgClassName}
-        />
+      {src && !failed ? (
+        <>
+          <img
+            ref={imgRef}
+            src={src}
+            alt={alt}
+            className={`${imgClassName} ${loading ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
+            onLoad={() => setLoading(false)}
+            onError={() => setFailed(true)}
+          />
+          {loading && <div className="absolute inset-0 bg-gradient-to-br ${tone} animate-pulse" />}
+        </>
       ) : (
         fallback
       )}
