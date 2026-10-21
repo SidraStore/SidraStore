@@ -73,8 +73,8 @@ const categoryData = {
     subtitle: "Curated Gift Sets",
     description: "Thoughtfully curated gift combinations for your loved ones.",
     products: [
-      { src: "/products/Attar & Fragrances/attar.jpg", name: "Attar Gift Set (3pc)", desc: "Sidra Oudh, Aseel, White Oudh", price: 1499, rating: 4.9, reviews: 98, tone: "from-amber-700 to-amber-950", badge: "Best Seller", subCategory: "Attar Set" },
-      { src: "/products/Attar & Fragrances/attar.jpg", name: "Premium Gift Box", desc: "Attar + Cap + Surma combo", price: 1999, rating: 4.8, reviews: 76, tone: "from-stone-700 to-stone-900", badge: "New", subCategory: "Combo" },
+      { src: "/products/attar-fragrances/attar.jpg", name: "Attar Gift Set (3pc)", desc: "Sidra Oudh, Aseel, White Oudh", price: 1499, rating: 4.9, reviews: 98, tone: "from-amber-700 to-amber-950", badge: "Best Seller", subCategory: "Attar Set" },
+      { src: "/products/gifts-combos/attar.jpg", name: "Premium Gift Box", desc: "Attar + Cap + Surma combo", price: 1999, rating: 4.8, reviews: 76, tone: "from-stone-700 to-stone-900", badge: "New", subCategory: "Combo" },
     ]
   },
 };
