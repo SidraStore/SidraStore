@@ -11,5 +11,8 @@ export async function GET() {
   ]);
   const error = categoryError || productError;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ categories, products }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+  const uniqueCategories = [...new Map(
+    categories.map((category) => [category.name.trim().toLowerCase(), category]),
+  ).values()];
+  return NextResponse.json({ categories: uniqueCategories, products }, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }

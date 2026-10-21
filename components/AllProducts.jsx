@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Eye, ShoppingCart, Star, StarHalf, Tag, Filter, ChevronDown } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
@@ -107,19 +107,27 @@ function Stars({ value }) {
 export default function AllProducts() {
   const { addItem } = useCart();
   const { products, error: catalogError } = useStorefrontCatalog(allProducts);
-  const categories = [...new Set(products.map((product) => product.category))];
-  const catalogPrices = products.map((product) => product.price);
-  const minimumCatalogPrice = catalogPrices.length ? Math.min(...catalogPrices) : 0;
-  const maximumCatalogPrice = catalogPrices.length ? Math.max(...catalogPrices) : 0;
+  const categories = useMemo(() => {
+    const categoryNames = new Map();
+    products.forEach((product) => {
+      const category = String(product.category || "Uncategorized").trim();
+      categoryNames.set(category.toLowerCase(), category);
+    });
+    return [...categoryNames.values()];
+  }, [products]);
+  const { minimumCatalogPrice, maximumCatalogPrice } = useMemo(() => {
+    const catalogPrices = products.map((product) => product.price);
+    return {
+      minimumCatalogPrice: catalogPrices.length ? Math.min(...catalogPrices) : 0,
+      maximumCatalogPrice: catalogPrices.length ? Math.max(...catalogPrices) : 0,
+    };
+  }, [products]);
   const [added, setAdded] = useState(() => new Set());
   const [selectedCategories, setSelectedCategories] = useState(() => new Set());
-  const [maximumPrice, setMaximumPrice] = useState(1000000);
+  const [maximumPriceOverride, setMaximumPriceOverride] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
-
-  useEffect(() => {
-    setMaximumPrice((current) => current === 1000000 || current > maximumCatalogPrice ? maximumCatalogPrice : current);
-  }, [maximumCatalogPrice]);
+  const maximumPrice = Math.min(maximumPriceOverride ?? maximumCatalogPrice, maximumCatalogPrice);
 
   const toggle = (setter, name, ms) =>
     setter((prev) => {
@@ -143,15 +151,15 @@ export default function AllProducts() {
 
   const resetFilters = () => {
     setSelectedCategories(new Set());
-    setMaximumPrice(maximumCatalogPrice);
+    setMaximumPriceOverride(null);
   };
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(product.category);
     return matchesCategory && product.price <= maximumPrice;
-  });
+  }), [maximumPrice, products, selectedCategories]);
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
+  const sortedProducts = useMemo(() => [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case "price-low": return a.price - b.price;
       case "price-high": return b.price - a.price;
@@ -159,7 +167,7 @@ export default function AllProducts() {
       case "newest": return b.reviews - a.reviews;
       default: return 0;
     }
-  });
+  }), [filteredProducts, sortBy]);
 
   return (
     <section className="relative isolate overflow-clip bg-cream py-20 lg:py-24">
@@ -240,26 +248,10 @@ export default function AllProducts() {
           </div>
         </div>
 
-        {filtersOpen && (
-          <div id="mobile-shop-filters" className="mt-5 lg:hidden">
-            <FilterPanel
-              products={products}
-              categories={categories}
-              minimumCatalogPrice={minimumCatalogPrice}
-              maximumCatalogPrice={maximumCatalogPrice}
-              selectedCategories={selectedCategories}
-              maximumPrice={maximumPrice}
-              onCategoryToggle={toggleCategory}
-              onClearCategories={() => setSelectedCategories(new Set())}
-              onMaximumPriceChange={setMaximumPrice}
-              onReset={resetFilters}
-            />
-          </div>
-        )}
-
         <div className="mt-8 grid items-start gap-7 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside
-            className="sticky top-24 hidden max-h-[calc(100vh-7rem)] self-start overflow-y-auto rounded-3xl lg:block"
+            id="mobile-shop-filters"
+            className={`${filtersOpen ? "block" : "hidden"} max-h-[calc(100vh-7rem)] self-start overflow-y-auto rounded-3xl lg:sticky lg:top-24 lg:block`}
             aria-label="Product filters"
           >
             <FilterPanel
@@ -271,7 +263,7 @@ export default function AllProducts() {
               maximumPrice={maximumPrice}
               onCategoryToggle={toggleCategory}
               onClearCategories={() => setSelectedCategories(new Set())}
-              onMaximumPriceChange={setMaximumPrice}
+              onMaximumPriceChange={setMaximumPriceOverride}
               onReset={resetFilters}
             />
           </aside>

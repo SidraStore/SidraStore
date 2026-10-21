@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { subscribeToStorefrontUpdates } from "@/lib/storefrontSync";
 
-export function mapStorefrontProduct(product) {
+function getProductKey(product) {
+  return String(product.slug || product.name || "").trim().toLowerCase();
+}
+
+export function mapStorefrontProduct(product, fallbackProduct) {
   return {
     id: product.id,
     slug: product.slug,
@@ -19,18 +23,23 @@ export function mapStorefrontProduct(product) {
     categorySlug: product.categories?.slug,
     subCategory: product.subcategories?.name || "General",
     badge: product.badge,
-    tone: "from-stone-200 to-cream",
+    tone: fallbackProduct?.tone || "from-stone-200 to-cream",
   };
 }
 
 function useLiveEndpoint(url, initialValue) {
   const [data, setData] = useState(initialValue);
   const [error, setError] = useState("");
+  const dataSignatureRef = useRef(JSON.stringify(initialValue));
   const refresh = useCallback(async () => {
     const response = await fetch(url, { cache: "no-store" });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || `Unable to load ${url}.`);
-    setData(result);
+    const nextSignature = JSON.stringify(result);
+    if (nextSignature !== dataSignatureRef.current) {
+      dataSignatureRef.current = nextSignature;
+      setData(result);
+    }
     setError("");
   }, [url]);
 
@@ -46,10 +55,32 @@ function useLiveEndpoint(url, initialValue) {
 }
 
 export function useStorefrontCatalog(initialProducts) {
+  const initialProductsRef = useRef(initialProducts);
   const { data, error, refresh } = useLiveEndpoint("/api/storefront/catalog", { products: [], categories: [] });
   const products = useMemo(
-    () => data.products.length ? data.products.map(mapStorefrontProduct) : initialProducts,
-    [data.products, initialProducts],
+    () => {
+      const fallbackProducts = initialProductsRef.current;
+      if (!data.products.length) return fallbackProducts;
+
+      const fallbackByKey = new Map(fallbackProducts.map((product) => [getProductKey(product), product]));
+      const fallbackOrder = new Map(fallbackProducts.map((product, index) => [getProductKey(product), index]));
+      const seenProducts = new Set();
+
+      return data.products
+        .map((product) => mapStorefrontProduct(product, fallbackByKey.get(getProductKey(product))))
+        .filter((product) => {
+          const key = getProductKey(product);
+          if (!key || seenProducts.has(key)) return false;
+          seenProducts.add(key);
+          return true;
+        })
+        .sort((first, second) => {
+          const firstIndex = fallbackOrder.get(getProductKey(first)) ?? Number.MAX_SAFE_INTEGER;
+          const secondIndex = fallbackOrder.get(getProductKey(second)) ?? Number.MAX_SAFE_INTEGER;
+          return firstIndex - secondIndex;
+        });
+    },
+    [data.products],
   );
   return { products, categories: data.categories, error, refresh };
 }

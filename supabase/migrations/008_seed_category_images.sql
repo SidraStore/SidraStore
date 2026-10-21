@@ -2,7 +2,7 @@ update public.categories set
   image_url = case slug
     when 'attar-fragrances' then '/products/Attar & Fragrances/attar.jpg'
     when 'islamic-caps' then '/products/Ismalic Caps/IMG-20230108-WA0009.jpg.jpeg'
-    when 'surma' then '/products/Surma/surma.jpg'
+    when 'surma' then '/products/surma/surma.jpg'
     when 'prayer-essentials' then '/products/Prayer Essentials/ja-namaz.jpg'
     when 'islamic-wear' then '/products/Ismalic wear/ajrak-chadar.jpg'
     when 'gifts-combos' then '/products/Attar & Fragrances/attar.jpg'

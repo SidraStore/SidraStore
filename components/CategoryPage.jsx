@@ -48,7 +48,7 @@ const categoryData = {
     subtitle: "Traditional Kohl Collection",
     description: "Authentic surma and kohl for beautiful, healthy eyes.",
     products: [
-      { src: "/products/Surma/surma.jpg", name: "Pure Surma Kohl", desc: "Traditional eye kohl", price: 199, rating: 4.8, reviews: 234, tone: "from-stone-800 to-stone-950", badge: "Best Seller", subCategory: "Traditional" },
+      { src: "/products/surma/surma.jpg", name: "Pure Surma Kohl", desc: "Traditional eye kohl", price: 199, rating: 4.8, reviews: 234, tone: "from-stone-800 to-stone-950", badge: "Best Seller", subCategory: "Traditional" },
     ]
   },
   "prayer-essentials": {

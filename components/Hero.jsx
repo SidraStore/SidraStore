@@ -101,6 +101,8 @@ export default function Hero() {
         <SmartImage
           src={desktopImage}
           tone="from-ink via-[#3a2410] to-[#8a5a2b]"
+          loading="eager"
+          fetchPriority="high"
           imgClassName="h-full w-full animate-kenburns object-cover object-center"
           className="absolute inset-0"
         />
@@ -111,6 +113,8 @@ export default function Hero() {
         src={mobileImage}
         alt="Sidra attars"
         tone="from-ink via-[#3a2410] to-[#8a5a2b]"
+        loading="eager"
+        fetchPriority="high"
         imgClassName="h-full w-full animate-kenburns object-cover object-center"
         className="absolute inset-0 -z-30 lg:hidden"
         fallback={
