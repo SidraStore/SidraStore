@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   BadgeCheck,
   ChevronDown,
@@ -268,17 +269,17 @@ export default function Header() {
             </button>
 
             {/* cart pill */}
-            <a
-              href="/checkout"
+            <Link
+              href="/cart"
               aria-label="Cart"
               className="group relative flex h-10 items-center gap-1.5 overflow-hidden rounded-full bg-ink py-1 pl-3 pr-1 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(21,16,12,0.7)] transition duration-300 hover:-translate-y-0.5 hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink sm:ml-2 sm:h-11 sm:gap-2.5 sm:pl-4 sm:pr-1.5"
             >
               <ShoppingBag size={18} className="text-gold-light transition group-hover:text-ink" />
               <span className="hidden sm:inline">Cart</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-gold-light to-gold text-xs font-bold text-ink transition group-hover:bg-ink group-hover:text-gold-light sm:h-8 sm:w-8">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-gold-light to-gold text-xs font-bold text-ink ring-1 ring-gold-light/60 transition group-hover:bg-none group-hover:bg-ink group-hover:text-gold-light group-hover:ring-ink sm:h-8 sm:w-8">
                 {itemCount}
               </span>
-            </a>
+            </Link>
 
             <button
               type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { subscribeToStorefrontUpdates } from "@/lib/storefrontSync";
 
 export function mapStorefrontProduct(product) {
@@ -47,7 +47,11 @@ function useLiveEndpoint(url, initialValue) {
 
 export function useStorefrontCatalog(initialProducts) {
   const { data, error, refresh } = useLiveEndpoint("/api/storefront/catalog", { products: [], categories: [] });
-  return { products: data.products.length ? data.products.map(mapStorefrontProduct) : initialProducts, categories: data.categories, error, refresh };
+  const products = useMemo(
+    () => data.products.length ? data.products.map(mapStorefrontProduct) : initialProducts,
+    [data.products, initialProducts],
+  );
+  return { products, categories: data.categories, error, refresh };
 }
 
 export function useStorefrontContent() {

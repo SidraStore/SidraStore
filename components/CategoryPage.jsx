@@ -194,7 +194,7 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
         )}
 
         {/* Grid: 4 cols desktop, 2 tablet, 1 mobile */}
-        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
           {displayProducts.map((p, i) => {
             const liked = wish.has(p.name);
             const isAdded = added.has(p.name);
@@ -205,7 +205,7 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
                     src={p.src}
                     alt={p.name}
                     tone={p.tone}
-                    className="h-[220px] w-full"
+                    className="h-[200px] w-full"
                     imgClassName="pointer-events-none h-full w-full object-cover transition duration-700 group-hover:scale-110"
                   >
                     <a
@@ -217,13 +217,13 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/10" />
 
                     {/* Sub-category badge */}
-                    <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-lg bg-white/90 text-stone-700 backdrop-blur-sm border border-gold/30">
+                    <span className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[9px] font-bold shadow-lg bg-white/90 text-stone-700 backdrop-blur-sm border border-gold/30">
                       {p.subCategory}
                     </span>
 
                     {/* Badge */}
                     <span
-                      className={`absolute right-3 top-3 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-lg ${
+                      className={`absolute right-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold shadow-lg ${
                         p.badge === "Best Seller"
                           ? "bg-gradient-to-b from-gold-light to-gold text-ink"
                           : p.badge === "New Arrival" || p.badge === "New"
@@ -239,8 +239,8 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
                           : "bg-black/55 text-gold-light backdrop-blur-sm"
                       }`}
                     >
-                      {p.badge === "Best Seller" && <Tag size={12} />}
-                      {p.badge && !["Best Seller"].includes(p.badge) && <span className="text-[10px]">{p.badge === "New" ? "NEW" : p.badge === "Limited" ? "LTD" : p.badge === "Premium" ? "PREM" : p.badge === "Popular" ? "POP" : p.badge === "Exclusive" ? "EXCL" : p.badge === "New Arrival" ? "NEW" : p.badge}</span>}
+                      {p.badge === "Best Seller" && <Tag size={10} />}
+                      {p.badge && !["Best Seller"].includes(p.badge) && <span className="text-[8px]">{p.badge === "New" ? "NEW" : p.badge === "Limited" ? "LTD" : p.badge === "Premium" ? "PREM" : p.badge === "Popular" ? "POP" : p.badge === "Exclusive" ? "EXCL" : p.badge === "New Arrival" ? "NEW" : p.badge}</span>}
                     </span>
 
                     {/* Wishlist */}
@@ -248,43 +248,38 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
                       aria-label="Wishlist"
                       aria-pressed={liked}
                       onClick={(e) => { e.stopPropagation(); toggle(setWish, p.name); }}
-                      className={`absolute right-3 top-36 z-20 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
+                      className={`absolute right-2 top-30 z-20 flex h-8 w-8 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
                         liked ? "bg-red-500 text-white" : "bg-white/95 text-stone-600 hover:text-red-500"
                       }`}
                     >
-                      <Heart size={16} fill={liked ? "currentColor" : "none"} className={liked ? "animate-bob" : ""} />
+                      <Heart size={14} fill={liked ? "currentColor" : "none"} className={liked ? "animate-bob" : ""} />
                     </button>
 
                     {/* Quick view */}
-                    <a href={getProductPath(p)} className="absolute inset-x-4 bottom-4 z-10 flex translate-y-6 items-center justify-center gap-2 rounded-full bg-white/90 py-2 text-xs font-semibold text-ink opacity-0 shadow-lg backdrop-blur-sm transition duration-500 hover:bg-gold group-hover:translate-y-0 group-hover:opacity-100">
-                      <Eye size={14} /> Quick View
+                    <a href={getProductPath(p)} className="absolute inset-x-3 bottom-3 z-10 flex translate-y-6 items-center justify-center gap-1.5 rounded-full bg-white/90 py-1.5 text-[10px] font-semibold text-ink opacity-0 shadow-lg backdrop-blur-sm transition duration-500 hover:bg-gold group-hover:translate-y-0 group-hover:opacity-100">
+                      <Eye size={12} /> Quick View
                     </a>
                   </SmartImage>
 
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-base font-bold leading-tight text-ink line-clamp-1">
+                  <div className="p-3">
+                    <div>
+                      <h3 className="break-words text-base font-bold leading-snug text-ink">
                         <a href={getProductPath(p)} className="transition hover:text-gold-dark">{p.name}</a>
                       </h3>
-                      {p.badge && (
-                        <span className="shrink-0 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white bg-gradient-to-r from-gold-dark to-gold">
-                          {p.badge}
-                        </span>
-                      )}
                     </div>
-                    <p className="mt-0.5 text-[13px] text-stone-500 line-clamp-1">{p.desc}</p>
-                    <div className="mt-2 flex items-center gap-1.5">
+                    <p className="mt-0.5 text-[11px] text-stone-500 line-clamp-1">{p.desc}</p>
+                    <div className="mt-1.5 flex items-center gap-1">
                       <Stars value={p.rating} />
-                      <span className="text-xs font-semibold text-ink">{p.rating}</span>
-                      <span className="text-xs text-stone-400">({p.reviews})</span>
+                      <span className="text-[11px] font-semibold text-ink">{p.rating}</span>
+                      <span className="text-[11px] text-stone-400">({p.reviews})</span>
                     </div>
-                    <p className="mt-2.5 text-2xl font-bold text-ink">
-                      <span className="mr-0.5 text-lg font-semibold text-gold-dark">₹</span>
+                    <p className="mt-2 text-xl font-bold text-ink">
+                      <span className="mr-0.5 text-base font-semibold text-gold-dark">₹</span>
                       {p.price}
                     </p>
                     <button
                       onClick={() => { addItem(p, 1); toggle(setAdded, p.name, 1800); }}
-                      className={`btn-gold-sm relative mt-3 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3 text-[13px] font-semibold transition duration-300 ${
+                      className={`btn-gold-sm relative mt-2.5 flex w-full items-center justify-center gap-1.5 overflow-hidden rounded-xl py-2.5 text-[12px] font-semibold transition duration-300 ${
                         isAdded
                           ? "bg-emerald-600 text-white"
                           : "bg-ink text-white hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink"
@@ -292,11 +287,11 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
                     >
                       {isAdded ? (
                         <>
-                          <ShoppingCart size={16} className="rotate-90" /> Added to Cart
+                          <ShoppingCart size={14} className="rotate-90" /> Added to Cart
                         </>
                       ) : (
                         <>
-                          <ShoppingCart size={15} /> Add to Cart
+                          <ShoppingCart size={13} /> Add to Cart
                         </>
                       )}
                     </button>

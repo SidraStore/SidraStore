@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Search, X } from "lucide-react";
+import { ChevronDown, Search, X, ShoppingBag } from "lucide-react";
 import Logo from "./Logo";
+import { useCart } from "./CartProvider";
 
 // Slide-in drawer used for the mobile / tablet navigation (light theme).
 export default function MobileSidebar({ open, onClose, items }) {
   const [expanded, setExpanded] = useState(null);
+  const { itemCount } = useCart();
 
   // lock page scroll while open, close on Esc
   useEffect(() => {
@@ -165,6 +167,13 @@ export default function MobileSidebar({ open, onClose, items }) {
 
         {/* bottom: CTA */}
         <div className="relative border-t border-gold/30 bg-white/80 px-6 pb-6 pt-5 backdrop-blur-sm">
+          <a href="/cart" onClick={onClose} className="group relative flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3 pl-6 pr-4 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(21,16,12,0.7)] transition duration-300 hover:-translate-y-0.5 hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink mb-4">
+            <ShoppingBag size={18} className="text-gold-light transition group-hover:text-ink" />
+            <span>Cart</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-gold-light to-gold text-xs font-bold text-ink transition group-hover:bg-ink group-hover:text-gold-light">
+              {itemCount}
+            </span>
+          </a>
           <a href="/all-products" onClick={onClose} className="btn-gold w-full !py-3.5 !text-[15px]">
             Shop Collection
           </a>
