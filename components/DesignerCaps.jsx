@@ -6,6 +6,7 @@ import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import Particles from "./Particles";
 import { getProductPath } from "@/lib/productCatalog";
+import { useWishlist } from "./WishlistProvider";
 
 // All cap images from /public/products/Ismalic Caps/ folder
 const capImages = [
@@ -87,7 +88,7 @@ function Stars({ value }) {
 }
 
 export default function DesignerCaps() {
-  const [wish, setWish] = useState(() => new Set());
+  const { isWishlisted, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(() => new Set());
   const [showAll, setShowAll] = useState(false);
 
@@ -149,7 +150,7 @@ export default function DesignerCaps() {
         {/* Grid: 5 columns on desktop, 2 on tablet, 1 on mobile */}
         <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {displayProducts.map((p, i) => {
-            const liked = wish.has(p.name);
+            const liked = isWishlisted(p);
             const isAdded = added.has(p.name);
             return (
               <Reveal key={p.src} delay={i * 60}>
@@ -202,7 +203,7 @@ export default function DesignerCaps() {
                     <button
                       aria-label="Wishlist"
                       aria-pressed={liked}
-                      onClick={(e) => { e.stopPropagation(); toggle(setWish, p.name); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(p); }}
                       className={`absolute right-3 top-36 z-20 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
                         liked ? "bg-red-500 text-white" : "bg-white/95 text-stone-600 hover:text-red-500"
                       }`}

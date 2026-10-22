@@ -1,19 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Image as ImageIcon, MessageCircleQuestion, Megaphone, Plus, Save, Star, Trash2, Truck } from "lucide-react";
+import { Eye, Image as ImageIcon, MessageCircleQuestion, Megaphone, Plus, Save, Star, Trash2, Truck, Upload } from "lucide-react";
 import SmartImage from "@/components/SmartImage";
 import CatalogDialog from "./CatalogDialog";
 import { notifyStorefrontUpdate } from "@/lib/storefrontSync";
 
 const inputClass = "mt-2 h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm font-normal outline-none focus:border-gold focus:ring-4 focus:ring-gold/10";
 
+async function uploadHeroImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", "/sidra-store/hero-slides");
+  const response = await fetch("/api/admin/upload", { method: "POST", body: formData });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Upload failed");
+  return result.url;
+}
+
 const contentConfigurations = {
   "hero-slides": {
     eyebrow: "Storefront content", title: "Hero Slides", description: "Create and control homepage hero campaigns.", icon: ImageIcon,
     fields: [
       { name: "title", label: "Title", required: true }, { name: "subtitle", label: "Subtitle" },
-      { name: "desktop_image_url", label: "Desktop image URL", required: true }, { name: "mobile_image_url", label: "Mobile image URL" },
+      { name: "desktop_image_url", label: "Desktop image URL", required: true, hint: "12:5 · 1920 × 800 px · JPG, PNG, or WebP" }, { name: "mobile_image_url", label: "Mobile image URL", hint: "3:4 · 1080 × 1440 px · JPG, PNG, or WebP" },
       { name: "cta_label", label: "Button label" }, { name: "cta_href", label: "Button link" },
     ],
     primary: "title", secondary: "subtitle", image: "desktop_image_url",
@@ -31,6 +41,7 @@ const contentConfigurations = {
 function ContentForm({ resource, item, onSaved, onCancel }) {
   const config = contentConfigurations[resource];
   const [saving, setSaving] = useState(false);
+  const [uploadingField, setUploadingField] = useState("");
   const [error, setError] = useState("");
 
   async function save(event) {
@@ -48,12 +59,35 @@ function ContentForm({ resource, item, onSaved, onCancel }) {
     onSaved();
   }
 
+  async function handleImageUpload(event, fieldName) {
+    const file = event.target.files[0];
+    if (!file) return;
+    setUploadingField(fieldName);
+    setError("");
+    try {
+      const url = await uploadHeroImage(file);
+      const input = event.target.form.elements.namedItem(fieldName);
+      if (input) input.value = url;
+    } catch (uploadError) {
+      setError(uploadError.message || "Unable to upload this image.");
+    } finally {
+      setUploadingField("");
+      event.target.value = "";
+    }
+  }
+
+  const isHeroSlide = resource === "hero-slides";
+
   return <form onSubmit={save} className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
     {item && config.image && <SmartImage src={item[config.image]} alt={item[config.primary]} className="h-52 rounded-2xl sm:col-span-2" imgClassName="h-full w-full object-contain" />}
-    {config.fields.map((field) => <label key={field.name} className={`text-sm font-semibold ${field.wide ? "sm:col-span-2" : ""}`}>{field.label}{field.textarea ? <textarea name={field.name} required={field.required} defaultValue={item?.[field.name] || ""} rows={4} className="mt-2 w-full rounded-xl border border-stone-200 p-3 text-sm font-normal outline-none focus:border-gold" /> : <input name={field.name} required={field.required} defaultValue={item?.[field.name] || ""} className={inputClass} />}</label>)}
+    {config.fields.map((field) => {
+      const isImageField = isHeroSlide && ["desktop_image_url", "mobile_image_url"].includes(field.name);
+      return <div key={field.name} className={field.wide ? "sm:col-span-2" : ""}><label htmlFor={field.name} className="text-sm font-semibold">{field.label}</label>{field.textarea ? <textarea id={field.name} name={field.name} required={field.required} defaultValue={item?.[field.name] || ""} rows={4} className="mt-2 w-full rounded-xl border border-stone-200 p-3 text-sm font-normal outline-none focus:border-gold" /> : isImageField ? <div className="mt-2 flex gap-2"><input id={field.name} name={field.name} required={field.required} defaultValue={item?.[field.name] || ""} className={`${inputClass} mt-0 flex-1`} placeholder="Image URL or upload an image" /><label htmlFor={`${field.name}-upload`} className="flex h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-4 text-sm font-semibold transition hover:border-gold hover:bg-cream"><Upload size={16} />{uploadingField === field.name ? "Uploading..." : "Upload"}<input id={`${field.name}-upload`} type="file" accept="image/*" onChange={(event) => handleImageUpload(event, field.name)} disabled={Boolean(uploadingField)} className="sr-only" /></label></div> : <input id={field.name} name={field.name} required={field.required} defaultValue={item?.[field.name] || ""} className={inputClass} />}{field.hint && <p className="mt-2 text-xs font-normal leading-relaxed text-stone-500">{field.hint}</p>}</div>;
+    })}
     <label className="text-sm font-semibold">Sort order<input name="sort_order" type="number" step="1" defaultValue={item?.sort_order ?? 0} className={inputClass} /></label>
     <label className="flex items-center gap-3 self-end pb-3 text-sm font-semibold"><input name="is_active" type="checkbox" defaultChecked={item?.is_active ?? true} className="h-4 w-4 accent-[#C99A4B]" /> Active on storefront</label>
     {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{error}</p>}
+    {isHeroSlide && <p className="text-xs font-normal text-stone-500 sm:col-span-2">Add multiple active slides to rotate them automatically every 2 seconds.</p>}
     <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={onCancel} className="rounded-xl border px-5 py-3 text-sm font-semibold">Cancel</button><button disabled={saving} className="flex items-center gap-2 rounded-xl bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"><Save size={16} />{saving ? "Saving..." : "Save"}</button></div>
   </form>;
 }

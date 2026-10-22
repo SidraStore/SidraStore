@@ -98,9 +98,9 @@ export default function ProductDetails({ product: initialProduct, similarProduct
 
           <div className="grid min-w-0 items-start gap-9 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
             <Reveal from="left">
-              <div className="relative overflow-hidden rounded-[32px] border border-gold/20 bg-white p-3 shadow-[0_28px_70px_-35px_rgba(21,16,12,0.55)] sm:p-5">
+              <div className="relative overflow-visible">
                 <ProductGallery product={product} />
-                <span className="absolute left-7 top-7 rounded-full border border-gold/30 bg-white/90 px-3 py-1.5 text-xs font-bold text-stone-700 shadow-sm backdrop-blur-sm sm:left-[116px]">
+                <span className="absolute left-7 top-7 rounded-full border border-gold/30 bg-white/90 px-3 py-1.5 text-xs font-bold text-stone-700 shadow-sm backdrop-blur-sm sm:left-[150px]">
                   {product.subCategory}
                 </span>
                 {product.badge && (
@@ -164,8 +164,9 @@ export default function ProductDetails({ product: initialProduct, similarProduct
               </p>
               <p className="mt-1 text-sm text-stone-500">Inclusive of all taxes</p>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <div className="flex h-12 w-full items-center justify-between rounded-full border border-stone-300 bg-white px-2 sm:w-[140px]">
+              <div className="mt-7 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)]">
+                <p className="text-sm font-semibold uppercase tracking-wide text-stone-600 sm:hidden">Quantity</p>
+                <div className="flex h-[52px] min-h-[52px] w-[164px] shrink-0 justify-self-start items-center justify-between rounded-full border border-stone-300 bg-white px-2 sm:w-full">
                   <button
                     type="button"
                     onClick={() => setQuantity((value) => Math.max(1, value - 1))}
@@ -188,7 +189,7 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                 <button
                   type="button"
                   onClick={addToCart}
-                  className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-7 text-sm font-semibold transition duration-300 ${
+                  className={`col-span-2 flex h-[52px] min-h-[52px] w-full shrink-0 items-center justify-center gap-2 rounded-full px-7 text-sm font-semibold transition duration-300 sm:col-span-1 ${
                     added
                       ? "bg-emerald-600 text-white"
                       : "bg-ink text-white hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink"
@@ -201,7 +202,7 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                 <button
                   type="button"
                   onClick={buyNow}
-                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-gold-dark bg-gradient-to-b from-gold-light to-gold px-7 text-sm font-semibold text-ink shadow-[0_10px_28px_-14px_rgba(201,154,75,0.8)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(201,154,75,0.9)]"
+                  className="col-span-2 flex h-[52px] min-h-[52px] w-full shrink-0 items-center justify-center gap-2 rounded-full border border-gold-dark bg-gradient-to-b from-gold-light to-gold px-7 text-sm font-semibold text-ink shadow-[0_10px_28px_-14px_rgba(201,154,75,0.8)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(201,154,75,0.9)] sm:col-span-1"
                 >
                   <Zap size={18} /> Buy Now
                 </button>
@@ -238,7 +239,7 @@ export default function ProductDetails({ product: initialProduct, similarProduct
             </a>
           </Reveal>
 
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {similarProducts.map((similarProduct, index) => (
               <Reveal key={similarProduct.name} delay={index * 80} from="zoom">
                 <article className="group h-full overflow-hidden rounded-3xl border border-stone-200 bg-cream shadow-[0_14px_35px_-24px_rgba(21,16,12,0.55)] transition duration-500 hover:-translate-y-2 hover:border-gold/60 hover:shadow-[0_28px_55px_-28px_rgba(201,154,75,0.75)]">
@@ -247,15 +248,15 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                       src={similarProduct.src}
                       alt={similarProduct.name}
                       tone={similarProduct.tone}
-                      className="h-[250px] w-full"
-                      imgClassName="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      className="aspect-square w-full sm:h-[250px] sm:aspect-auto"
+                      imgClassName="h-full w-full object-contain transition duration-700 group-hover:scale-105"
                     />
                   </a>
-                  <div className="p-5">
+                  <div className="p-3 sm:p-5">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-dark">
                       {similarProduct.subCategory}
                     </p>
-                    <h3 className="mt-2 text-lg font-bold">
+                    <h3 className="mt-2 text-base font-bold sm:text-lg">
                       <a href={getProductPath(similarProduct)} className="transition hover:text-gold-dark">
                         {similarProduct.name}
                       </a>
@@ -264,7 +265,7 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                       <Stars value={similarProduct.rating} size={13} />
                       <span className="text-xs text-stone-500">({similarProduct.reviews})</span>
                     </div>
-                    <p className="mt-3 text-2xl font-bold">
+                    <p className="mt-3 text-xl font-bold sm:text-2xl">
                       <span className="mr-0.5 text-lg text-gold-dark">₹</span>
                       {similarProduct.price}
                     </p>

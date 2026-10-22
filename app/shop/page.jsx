@@ -7,6 +7,6 @@ export const metadata = {
   description: "Shop Sidra Store's complete collection of attars, Islamic caps, prayer essentials, wear, and gifts.",
 };
 
-export default function ShopPage() {
-  return <><Header /><main><AllProducts /></main><Footer /></>;
+export default function ShopPage({ searchParams }) {
+  return <><Header /><main><AllProducts initialCategory={searchParams?.category || ""} /></main><Footer /></>;
 }

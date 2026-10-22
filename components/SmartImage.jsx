@@ -17,15 +17,15 @@ const normalizedImageKitUrls = Object.fromEntries(
   Object.entries(imageKitProductUrls).map(([source, url]) => [normalizeProductPath(source), url]),
 );
 
-function resolveImageSource(source) {
+function resolveImageSource(source, imageKitTransform = "f-auto,q-80") {
   if (!source) return "";
 
   const normalizedSource = normalizeProductPath(source);
   const mappedSource = normalizedImageKitUrls[normalizedSource] || normalizedSource;
 
-  if (mappedSource.includes("ik.imagekit.io/") && !mappedSource.includes("tr=")) {
+  if (mappedSource.includes("ik.imagekit.io/") && !mappedSource.includes("tr=") && imageKitTransform) {
     const separator = mappedSource.includes("?") ? "&" : "?";
-    return `${mappedSource}${separator}tr=f-auto,q-80`;
+    return `${mappedSource}${separator}tr=${imageKitTransform}`;
   }
 
   return mappedSource;
@@ -40,10 +40,11 @@ export default function SmartImage({
   fallback = null,
   loading = "lazy",
   fetchPriority = "auto",
+  imageKitTransform,
   style,
   children,
 }) {
-  const resolvedSrc = resolveImageSource(src);
+  const resolvedSrc = resolveImageSource(src, imageKitTransform);
   const [failedSource, setFailedSource] = useState("");
   const [loadedSource, setLoadedSource] = useState("");
   const imgRef = useRef(null);

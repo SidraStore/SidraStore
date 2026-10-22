@@ -1,7 +1,8 @@
 "use client";
 
 import { CartProvider } from "./CartProvider";
+import { WishlistProvider } from "./WishlistProvider";
 
 export default function StoreProviders({ children }) {
-  return <CartProvider>{children}</CartProvider>;
+  return <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>;
 }

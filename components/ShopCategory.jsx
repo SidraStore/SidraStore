@@ -1,21 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
-import { shopCategories } from "@/lib/data";
+import { useStorefrontCategories } from "./useStorefrontData";
 
-export default function ShopCategory() {
-  const displayedCategories = shopCategories;
-  const [wish, setWish] = useState(() => new Set());
-  const toggle = (name) =>
-    setWish((prev) => {
-      const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
-      return next;
-    });
+const fallbackImages = {
+  "attar-and-fragrances": "/products/attar-fragrances/attar.jpg",
+  "islamic-caps": "/products/islamic-caps/IMG-20230108-WA0009.jpg.jpeg",
+  surma: "/products/surma/surma.jpg",
+  "prayer-essentials": "/products/prayer-essentials/ja-namaz.jpg",
+  "islamic-wear": "/products/islamic-wear/ajrak-chadar.jpg",
+  "gifts-and-combos": "/products/gifts-combos/attar.jpg",
+};
 
+const fallbackTones = {
+  "attar-and-fragrances": "from-amber-700 to-amber-950",
+  "islamic-caps": "from-stone-100 to-stone-300",
+  surma: "from-amber-100 to-amber-300",
+  "prayer-essentials": "from-blue-700 to-blue-950",
+  "islamic-wear": "from-red-800 to-red-950",
+  "gifts-and-combos": "from-amber-700 to-amber-950",
+};
+
+function slugify(value) {
+  return String(value || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export default function ShopCategory({ initialCategories }) {
+  const { categories } = useStorefrontCategories(initialCategories);
+  const categoryCards = categories.map((category) => {
+    const slug = category.slug || slugify(category.name);
+    return {
+      name: category.name,
+      href: `/shop?category=${encodeURIComponent(slug)}`,
+      img: category.image_url || fallbackImages[slug],
+      tone: fallbackTones[slug] || "from-stone-200 to-cream",
+    };
+  });
+  const displayedCategories = [
+    ...categoryCards,
+    {
+      name: "All Products",
+      href: "/shop",
+      img: categories[0]?.image_url || "/products/attar-fragrances/sidra-oudh.jpg",
+      tone: "from-emerald-900 to-stone-900",
+    },
+  ];
   return (
     <section className="relative overflow-hidden bg-cream py-20 lg:py-24">
       {/* ambience */}
@@ -40,7 +70,7 @@ export default function ShopCategory() {
             </p>
           </div>
           <a
-            href="/all-products"
+            href="/shop"
             className="group flex items-center justify-center rounded-full border border-gold/60 bg-white px-5 py-3 text-center text-sm font-semibold text-ink shadow-sm transition duration-300 hover:-translate-y-0.5 hover:bg-gold hover:shadow-lg"
           >
             View All Categories
@@ -49,7 +79,6 @@ export default function ShopCategory() {
 
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
           {displayedCategories.map((c, i) => {
-            const liked = wish.has(c.name);
             return (
               <Reveal key={c.name} delay={(i % 5) * 100} from="zoom">
                 <a
@@ -73,21 +102,6 @@ export default function ShopCategory() {
                   <span className="absolute left-4 top-4 font-serif text-lg font-semibold tracking-wide text-gold-light drop-shadow">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-
-                  {/* wishlist */}
-                  <button
-                    aria-label="Wishlist"
-                    aria-pressed={liked}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggle(c.name);
-                    }}
-                    className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
-                      liked ? "bg-red-500 text-white" : "bg-white/90 text-stone-600 hover:text-red-500"
-                    }`}
-                  >
-                    <Heart size={16} fill={liked ? "currentColor" : "none"} />
-                  </button>
 
                   {/* name + reveal line */}
                   <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">

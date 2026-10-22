@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, ShoppingCart, Star, StarHalf, Tag, Filter, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Heart, ShoppingCart, Star, StarHalf, Tag, Filter, ChevronDown } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import Particles from "./Particles";
 import { allProducts, getProductPath } from "@/lib/productCatalog";
 import { useCart } from "./CartProvider";
+import { useWishlist } from "./WishlistProvider";
 import { useStorefrontCatalog } from "./useStorefrontData";
 
+function categorySlug(value) {
+  return String(value || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
 
 function FilterPanel({ products, categories, minimumCatalogPrice, maximumCatalogPrice, selectedCategories, maximumPrice, onCategoryToggle, onClearCategories, onMaximumPriceChange, onReset }) {
   const hasActiveFilters = selectedCategories.size > 0 || maximumPrice < maximumCatalogPrice;
@@ -104,8 +108,9 @@ function Stars({ value }) {
   );
 }
 
-export default function AllProducts() {
+export default function AllProducts({ initialCategory }) {
   const { addItem } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   const { products, error: catalogError } = useStorefrontCatalog(allProducts);
   const categories = useMemo(() => {
     const categoryNames = new Map();
@@ -122,14 +127,21 @@ export default function AllProducts() {
       maximumCatalogPrice: catalogPrices.length ? Math.max(...catalogPrices) : 0,
     };
   }, [products]);
+  const initialCategoryName = allProducts.find((product) => categorySlug(product.category) === initialCategory)?.category || "";
   const [added, setAdded] = useState(() => new Set());
-  const [selectedCategories, setSelectedCategories] = useState(() => new Set());
+  const [selectedCategories, setSelectedCategories] = useState(() => new Set(initialCategoryName ? [initialCategoryName] : []));
   const [maximumPriceOverride, setMaximumPriceOverride] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
   const [productsPerPage, setProductsPerPage] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
   const maximumPrice = Math.min(maximumPriceOverride ?? maximumCatalogPrice, maximumCatalogPrice);
+
+  useEffect(() => {
+    if (!initialCategory) return;
+    const matchingCategory = categories.find((category) => categorySlug(category) === initialCategory);
+    if (matchingCategory) setSelectedCategories(new Set([matchingCategory]));
+  }, [categories, initialCategory]);
 
   const toggle = (setter, name, ms) =>
     setter((prev) => {
@@ -302,6 +314,7 @@ export default function AllProducts() {
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {paginatedProducts.map((p, i) => {
             const isAdded = added.has(p.name);
+            const liked = isWishlisted(p);
             return (
               <Reveal key={p.name} delay={i * 40}>
                 <article className="group relative h-full select-none overflow-hidden rounded-3xl bg-white shadow-[0_10px_30px_-18px_rgba(21,16,12,0.35)] ring-1 ring-stone-200 transition duration-500 hover:-translate-y-3 hover:shadow-[0_34px_60px_-20px_rgba(201,154,75,0.6)] hover:ring-gold/70">
@@ -350,6 +363,20 @@ export default function AllProducts() {
                       {p.badge === "Best Seller" && <Tag size={10} />}
                       {p.badge && !["Best Seller"].includes(p.badge) && <span className="text-[8px]">{p.badge === "New" ? "NEW" : p.badge === "Limited" ? "LTD" : p.badge === "Premium" ? "PREM" : p.badge === "Popular" ? "POP" : p.badge === "Exclusive" ? "EXCL" : p.badge === "New Arrival" ? "NEW" : p.badge === "Featured" ? "★" : p.badge === "Seasonal" ? "SEAS" : p.badge}</span>}
                     </span>
+
+                    <button
+                      type="button"
+                      aria-label={liked ? `Remove ${p.name} from wishlist` : `Add ${p.name} to wishlist`}
+                      aria-pressed={liked}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleWishlist(p);
+                      }}
+                      className={`absolute right-2 top-10 z-20 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${liked ? "bg-red-500 text-white" : "bg-white/95 text-stone-600 hover:text-red-500"}`}
+                    >
+                      <Heart size={16} fill={liked ? "currentColor" : "none"} className={liked ? "animate-bob" : ""} />
+                    </button>
 
                     {/* Quick view */}
                     <a href={getProductPath(p)} className="absolute inset-x-3 bottom-3 z-10 flex translate-y-6 items-center justify-center gap-1.5 rounded-full bg-white/90 py-1.5 text-[10px] font-semibold text-ink opacity-0 shadow-lg backdrop-blur-sm transition duration-500 hover:bg-gold group-hover:translate-y-0 group-hover:opacity-100">

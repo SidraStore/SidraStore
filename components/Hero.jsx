@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldCheck, Truck, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import SmartImage from "./SmartImage";
 import Particles from "./Particles";
 import Parallax from "./Parallax";
@@ -82,46 +83,70 @@ function Seal({ className = "", text = "text-[11px]" }) {
   );
 }
 
-export default function Hero() {
-  const { data: storefrontContent } = useStorefrontContent();
-  const slide = storefrontContent.hero_slides[0];
+export default function Hero({ initialContent }) {
+  const { data: storefrontContent } = useStorefrontContent(initialContent);
+  const fallbackSlide = {
+    id: "default-hero",
+    title: "Fragrance Inspired by Faith",
+    subtitle: "Discover premium attars, Islamic caps, surma, prayer essentials and more — crafted for a meaningful everyday life.",
+    desktop_image_url: "/images/hero1.png",
+    mobile_image_url: "/images/hero1.png",
+    cta_label: "Shop Collection",
+    cta_href: "/shop",
+  };
+  const slides = storefrontContent.hero_slides.length ? storefrontContent.hero_slides : [fallbackSlide];
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex((current) => Math.min(current, slides.length - 1));
+  }, [slides.length]);
+
+  useEffect(() => {
+    if (slides.length <= 1) return undefined;
+    const interval = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % slides.length);
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, [slides.length]);
+
+  const slide = slides[activeIndex] || slides[0];
   const heroTitle = slide?.title || "Fragrance Inspired by Faith";
   const titleWords = heroTitle.split(/\s+/);
   const highlightedWord = titleWords.pop();
   const titleLead = titleWords.join(" ");
   const heroDescription = slide?.subtitle || "Discover premium attars, Islamic caps, surma, prayer essentials and more — crafted for a meaningful everyday life.";
-  const desktopImage = slide?.desktop_image_url || "/images/hero1.png";
-  const mobileImage = slide?.mobile_image_url || desktopImage;
   const ctaLabel = slide?.cta_label || "Shop Collection";
   const ctaHref = slide?.cta_href || "/shop";
   return (
     <section className="relative isolate overflow-hidden bg-ink text-white">
       {/* ───────── desktop background — drifts opposite to the mouse ───────── */}
       <Parallax depth={18} className="absolute -inset-6 -z-30 hidden lg:block">
-        <SmartImage
-          src={desktopImage}
+        {slides.map((currentSlide, index) => <SmartImage
+          key={`${currentSlide.id || currentSlide.title}-${index}-desktop`}
+          src={currentSlide.desktop_image_url}
           tone="from-ink via-[#3a2410] to-[#8a5a2b]"
-          loading="eager"
-          fetchPriority="high"
+          imageKitTransform="f-auto,q-75,w-1920"
+          loading={index === 0 ? "eager" : "lazy"}
+          fetchPriority={index === 0 ? "high" : "auto"}
           imgClassName="h-full w-full animate-kenburns object-cover object-center"
-          className="absolute inset-0"
-        />
+          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === activeIndex ? "z-10 opacity-100" : "z-0 opacity-0"}`}
+        />)}
       </Parallax>
 
       {/* ───────── mobile background (heromobile.png, falls back to the desktop photo) ───────── */}
-      <SmartImage
-        src={mobileImage}
-        alt="Sidra attars"
-        tone="from-ink via-[#3a2410] to-[#8a5a2b]"
-        loading="eager"
-        fetchPriority="high"
-        imgClassName="h-full w-full animate-kenburns object-cover object-center"
-        className="absolute inset-0 -z-30 lg:hidden"
-        fallback={
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={desktopImage} alt="" className="h-full w-full object-cover object-[72%_center]" />
-        }
-      />
+      <div className="absolute inset-0 -z-30 lg:hidden">
+        {slides.map((currentSlide, index) => <SmartImage
+          key={`${currentSlide.id || currentSlide.title}-${index}-mobile`}
+          src={currentSlide.mobile_image_url || currentSlide.desktop_image_url}
+          alt="Sidra attars"
+          tone="from-ink via-[#3a2410] to-[#8a5a2b]"
+          imageKitTransform="f-auto,q-75,w-1080"
+          loading={index === 0 ? "eager" : "lazy"}
+          fetchPriority={index === 0 ? "high" : "auto"}
+          imgClassName="h-full w-full animate-kenburns object-cover object-center"
+          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === activeIndex ? "z-10 opacity-100" : "z-0 opacity-0"}`}
+        />)}
+      </div>
 
       {/* contrast */}
       <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-black/70 via-black/15 to-transparent lg:block" />

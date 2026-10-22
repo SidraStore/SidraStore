@@ -18,7 +18,7 @@ async function uploadImage(file) {
   return result.url;
 }
 
-function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
+function ProductForm({ product, categories, onSaved, onCancel }) {
   const [categoryId, setCategoryId] = useState(product?.category_id || categories[0]?.id || "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,7 +41,7 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
       name: form.get("name"), category_id: categoryId, subcategory_id: form.get("subcategory_id") || null,
       short_description: form.get("short_description"), description: form.get("description"),
       price: form.get("price"), stock_quantity: form.get("stock_quantity"), image_url: imageUrls[0], gallery_urls: imageUrls.slice(1),
-      badge: form.get("badge"), is_active: form.get("is_active") === "on",
+      badge: form.get("badge"), is_active: form.get("is_active") === "on", is_featured: form.get("is_featured") === "on",
     };
     const url = product ? `/api/admin/catalog/products/${product.id}` : "/api/admin/catalog/products";
     const response = await fetch(url, { method: product ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -50,15 +50,6 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
     if (!response.ok) return setError(result.error || "Unable to save the product.");
     notifyStorefrontUpdate("catalog");
     onSaved();
-  }
-
-  async function remove() {
-    if (!product || !window.confirm(`Delete ${product.name}? This cannot be undone.`)) return;
-    const response = await fetch(`/api/admin/catalog/products/${product.id}`, { method: "DELETE" });
-    const result = await response.json();
-    if (!response.ok) return setError(result.error || "Unable to delete the product.");
-    notifyStorefrontUpdate("catalog");
-    onDeleted();
   }
 
   async function handleImageUpload(event) {
@@ -106,7 +97,7 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
             <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} className="sr-only" />
           </label>
         </div>
-        <p className="mt-2 text-xs text-stone-500">The first image is the main image. Upload or add multiple URLs, then choose the primary image.</p>
+        <p className="mt-2 text-xs leading-relaxed text-stone-500">First image is primary. Recommended: <span className="font-semibold text-stone-700">1:1 · 1000 × 1000 px · JPG, PNG, or WebP</span></p>
         {uploading && <p className="mt-1 text-sm text-gold-dark">Uploading images...</p>}
       </div>
       <label className="text-sm font-semibold">Category<select name="category_id" required value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className={inputClass}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
@@ -116,9 +107,12 @@ function ProductForm({ product, categories, onSaved, onDeleted, onCancel }) {
       <label className="text-sm font-semibold">Short description<input name="short_description" required defaultValue={product?.short_description || ""} className={inputClass} /></label>
       <label className="text-sm font-semibold">Badge<input name="badge" defaultValue={product?.badge || ""} className={inputClass} placeholder="Optional" /></label>
       <label className="text-sm font-semibold sm:col-span-2">Full description<textarea name="description" defaultValue={product?.description || ""} rows={4} className="mt-2 w-full rounded-xl border border-stone-200 p-3 text-sm outline-none focus:border-gold focus:ring-4 focus:ring-gold/10" /></label>
-      <label className="flex items-center gap-3 text-sm font-semibold sm:col-span-2"><input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true} className="h-4 w-4 accent-[#C99A4B]" /> Product is active</label>
+      <div className="flex flex-wrap gap-5 sm:col-span-2">
+        <label className="flex items-center gap-3 text-sm font-semibold"><input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true} className="h-4 w-4 accent-[#C99A4B]" /> Product is active</label>
+        <label className="flex items-center gap-3 text-sm font-semibold"><input name="is_featured" type="checkbox" defaultChecked={product?.is_featured ?? false} className="h-4 w-4 accent-[#C99A4B]" /> Featured on homepage</label>
+      </div>
       {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{error}</p>}
-      <div className="flex flex-wrap justify-between gap-3 sm:col-span-2"><div>{product && <button type="button" onClick={remove} className="flex items-center gap-2 rounded-xl border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 size={16} /> Delete Product</button>}</div><div className="flex gap-3"><button type="button" onClick={onCancel} className="rounded-xl border px-5 py-3 text-sm font-semibold">Cancel</button><button disabled={saving} className="flex items-center gap-2 rounded-xl bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"><Save size={16} />{saving ? "Saving..." : "Save Product"}</button></div></div>
+      <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={onCancel} className="rounded-xl border px-5 py-3 text-sm font-semibold">Cancel</button><button disabled={saving} className="flex items-center gap-2 rounded-xl bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"><Save size={16} />{saving ? "Saving..." : "Save Product"}</button></div>
     </form>
   );
 }
@@ -145,6 +139,17 @@ export default function AdminProducts() {
   }
 
   useEffect(() => { loadCatalog(); }, []);
+
+  async function deleteProduct(product) {
+    if (!window.confirm(`Delete ${product.name}? This cannot be undone.`)) return;
+    const response = await fetch(`/api/admin/catalog/products/${product.id}`, { method: "DELETE" });
+    const result = await response.json();
+    if (!response.ok) return setError(result.error || "Unable to delete the product.");
+    notifyStorefrontUpdate("catalog");
+    if (selected?.id === product.id) setSelected(null);
+    await loadCatalog();
+  }
+
   const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(search.trim().toLowerCase());
     const matchesCategory = categoryFilter === "All" || product.category_id === categoryFilter;
@@ -160,9 +165,9 @@ export default function AdminProducts() {
       {error && <p role="alert" className="m-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-7">{error}</p>}
       <div className="flex flex-col gap-3 border-b border-stone-200 p-5 sm:flex-row sm:px-7"><label className="flex h-11 flex-1 items-center gap-3 rounded-xl border px-3 focus-within:border-gold"><Search size={17} className="text-stone-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-11 rounded-xl border bg-white px-3 text-sm"><option value="All">All categories</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
       {loading ? <p className="p-8 text-sm text-stone-500">Loading products...</p> : (
-        <div className="max-h-[650px] overflow-auto"><table className="w-full min-w-[880px] text-left"><thead className="sticky top-0 z-10 bg-stone-50 text-[11px] uppercase tracking-[0.14em] text-stone-500"><tr><th className="px-7 py-3">Product</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Status</th><th className="px-7 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-stone-100">{filteredProducts.map((product) => <tr key={product.id} className="text-sm hover:bg-cream/60"><td className="px-7 py-3"><div className="flex items-center gap-3"><SmartImage src={product.image_url} alt="" className="h-12 w-12 shrink-0 rounded-lg" imgClassName="h-full w-full object-cover" /><div><p className="font-semibold">{product.name}</p><p className="mt-0.5 text-xs text-stone-400">{product.subcategories?.name || "No subcategory"}</p></div></div></td><td className="px-5 py-3 text-stone-600">{product.categories?.name}</td><td className="px-5 py-3 font-semibold">₹{product.price}</td><td className="px-5 py-3">{product.stock_quantity}</td><td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${product.is_active ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-stone-500"}`}>{product.is_active ? "Active" : "Inactive"}</span></td><td className="px-7 py-3 text-right"><button onClick={() => setSelected(product)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold hover:border-gold hover:bg-cream"><Eye size={14} /> View & Edit</button></td></tr>)}</tbody></table></div>
+        <div className="max-h-[650px] overflow-auto"><table className="w-full min-w-[920px] text-left"><thead className="sticky top-0 z-10 bg-stone-50 text-[11px] uppercase tracking-[0.14em] text-stone-500"><tr><th className="px-7 py-3">Product</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Status</th><th className="px-7 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-stone-100">{filteredProducts.map((product) => <tr key={product.id} className="text-sm hover:bg-cream/60"><td className="px-7 py-3"><div className="flex items-center gap-3"><SmartImage src={product.image_url} alt="" className="h-12 w-12 shrink-0 rounded-lg" imgClassName="h-full w-full object-cover" /><div><p className="font-semibold">{product.name}</p><p className="mt-0.5 text-xs text-stone-400">{product.subcategories?.name || "No subcategory"}</p></div></div></td><td className="px-5 py-3 text-stone-600">{product.categories?.name}</td><td className="px-5 py-3 font-semibold">₹{product.price}</td><td className="px-5 py-3">{product.stock_quantity}</td><td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${product.is_active ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-stone-500"}`}>{product.is_active ? "Active" : "Inactive"}</span></td><td className="px-7 py-3 text-right"><div className="flex justify-end gap-2"><button onClick={() => setSelected(product)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold hover:border-gold hover:bg-cream"><Eye size={14} /> View & Edit</button><button onClick={() => deleteProduct(product)} aria-label={`Delete ${product.name}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50"><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
       )}
-      {(selected || creating) && <CatalogDialog title={creating ? "Add new product" : selected.name} subtitle={creating ? "Create a new item in the Sidra Store catalog." : "View, update, deactivate, or delete this product."} onClose={() => { setSelected(null); setCreating(false); }}><ProductForm product={creating ? null : selected} categories={categories} onCancel={() => { setSelected(null); setCreating(false); }} onSaved={async () => { setSelected(null); setCreating(false); await loadCatalog(); }} onDeleted={async () => { setSelected(null); await loadCatalog(); }} /></CatalogDialog>}
+      {(selected || creating) && <CatalogDialog title={creating ? "Add new product" : selected.name} subtitle={creating ? "Create a new item in the Sidra Store catalog." : "View and update this product."} onClose={() => { setSelected(null); setCreating(false); }}><ProductForm product={creating ? null : selected} categories={categories} onCancel={() => { setSelected(null); setCreating(false); }} onSaved={async () => { setSelected(null); setCreating(false); await loadCatalog(); }} /></CatalogDialog>}
     </section>
   );
 }

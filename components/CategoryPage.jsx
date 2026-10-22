@@ -7,6 +7,7 @@ import Reveal from "./Reveal";
 import Particles from "./Particles";
 import { getProductPath } from "@/lib/productCatalog";
 import { useCart } from "./CartProvider";
+import { useWishlist } from "./WishlistProvider";
 import { useStorefrontCatalog } from "./useStorefrontData";
 
 const categoryData = {
@@ -93,6 +94,7 @@ function Stars({ value }) {
 
 function CategoryPage({ categoryKey, initialCount = 8 }) {
   const { addItem } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   const category = categoryData[categoryKey];
   const initialProducts = (category?.products || []).map((product) => ({ ...product, category: category?.title, categorySlug: categoryKey }));
   const { products: catalogProducts, error: catalogError } = useStorefrontCatalog(initialProducts);
@@ -100,7 +102,6 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
 
   const { title, subtitle, description } = category;
   const products = catalogProducts.filter((product) => product.categorySlug === categoryKey || product.category === title);
-  const [wish, setWish] = useState(() => new Set());
   const [added, setAdded] = useState(() => new Set());
   const [showAll, setShowAll] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
@@ -196,7 +197,7 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
         {/* Grid: 4 cols desktop, 2 tablet, 1 mobile */}
         <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
           {displayProducts.map((p, i) => {
-            const liked = wish.has(p.name);
+            const liked = isWishlisted(p);
             const isAdded = added.has(p.name);
             return (
               <Reveal key={p.src} delay={i * 40}>
@@ -247,7 +248,7 @@ function CategoryPage({ categoryKey, initialCount = 8 }) {
                     <button
                       aria-label="Wishlist"
                       aria-pressed={liked}
-                      onClick={(e) => { e.stopPropagation(); toggle(setWish, p.name); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(p); }}
                       className={`absolute right-2 top-30 z-20 flex h-8 w-8 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
                         liked ? "bg-red-500 text-white" : "bg-white/95 text-stone-600 hover:text-red-500"
                       }`}

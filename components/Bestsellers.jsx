@@ -14,9 +14,10 @@ import {
 } from "lucide-react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
-import { products } from "@/lib/data";
-import { getProductPath } from "@/lib/productCatalog";
+import { allProducts, getProductPath } from "@/lib/productCatalog";
 import { useCart } from "./CartProvider";
+import { useWishlist } from "./WishlistProvider";
+import { useStorefrontCatalog } from "./useStorefrontData";
 
 function Stars({ value }) {
   return (
@@ -32,11 +33,13 @@ function Stars({ value }) {
 
 export default function Bestsellers() {
   const { addItem } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { products } = useStorefrontCatalog(allProducts);
+  const featuredProducts = products.filter((product) => product.isFeatured);
   const ref = useRef(null);
   const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
   const [progress, setProgress] = useState(0); // 0..1 scroll position
   const [thumb, setThumb] = useState(0.4); // visible share of the track
-  const [wish, setWish] = useState(() => new Set());
   const [added, setAdded] = useState(() => new Set());
 
   const update = useCallback(() => {
@@ -99,6 +102,8 @@ export default function Bestsellers() {
   const atStart = progress <= 0.01;
   const atEnd = progress >= 0.99;
 
+  if (!featuredProducts.length) return null;
+
   return (
     <section className="relative overflow-hidden bg-cream py-20 lg:py-24">
       {/* ambience */}
@@ -113,17 +118,17 @@ export default function Bestsellers() {
           <div>
             <p className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.35em] text-gold-dark">
               <span className="h-px w-10 bg-gradient-to-r from-transparent to-gold-dark" />
-              Bestsellers
+              Featured
             </p>
             <h2 className="mt-3 font-serif text-4xl font-semibold text-ink lg:text-5xl">
-              Most Loved <span className="text-shimmer-dark">Attars</span>
+              Featured <span className="text-shimmer-dark">Products</span>
             </h2>
             <p className="mt-3 hidden max-w-[420px] text-base text-stone-500 sm:block">
-              Hand-picked fragrances our customers keep coming back for.
+              Hand-picked products selected for the Sidra Store homepage.
             </p>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
-            <a href="/attar-fragrances" className="link-underline hidden items-center text-sm font-semibold text-ink sm:flex">
+            <a href="/shop" className="link-underline hidden items-center text-sm font-semibold text-ink sm:flex">
               View All
             </a>
             <button
@@ -155,18 +160,18 @@ export default function Bestsellers() {
           onDragStart={(e) => e.preventDefault()}
           className="no-scrollbar -mx-4 mt-10 flex cursor-grab snap-x snap-mandatory scroll-pl-4 gap-4 overflow-x-auto scroll-smooth px-4 pb-8 pt-3 active:cursor-grabbing sm:-mx-8 sm:scroll-pl-8 sm:px-8 lg:mx-0 lg:scroll-pl-0 lg:px-0"
         >
-          {products.map((p, i) => {
-            const liked = wish.has(p.name);
+          {featuredProducts.map((p, i) => {
+            const liked = isWishlisted(p);
             const isAdded = added.has(p.name);
             return (
               <Reveal
-                key={p.name}
+                key={p.id || p.slug || p.name}
                 delay={i * 90}
                 className="w-[220px] shrink-0 snap-start sm:w-[240px] lg:w-[calc((100%-4rem)/5)]"
               >
                 <article className="group relative h-full select-none overflow-hidden rounded-3xl bg-white shadow-[0_10px_30px_-18px_rgba(21,16,12,0.35)] ring-1 ring-stone-200 transition duration-500 hover:-translate-y-3 hover:shadow-[0_34px_60px_-20px_rgba(201,154,75,0.6)] hover:ring-gold/70">
                   <SmartImage
-                    src={p.img}
+                    src={p.src}
                     alt={p.name}
                     tone={p.tone}
                     className="h-[230px] w-full"
@@ -189,14 +194,18 @@ export default function Bestsellers() {
                       }`}
                     >
                       {i === 0 && <Flame size={12} />}
-                      {i === 0 ? "Best Seller" : `#${i + 1}`}
+                      {i === 0 ? "Featured" : `#${i + 1}`}
                     </span>
 
                     {/* wishlist */}
                     <button
                       aria-label="Wishlist"
                       aria-pressed={liked}
-                      onClick={() => toggle(setWish, p.name)}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleWishlist(p);
+                      }}
                       className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition duration-300 hover:scale-110 ${
                         liked ? "bg-red-500 text-white" : "bg-white/95 text-stone-600 hover:text-red-500"
                       }`}
@@ -214,7 +223,7 @@ export default function Bestsellers() {
                     <h3 className="text-base font-bold leading-tight text-ink">
                       <a href={getProductPath(p)} className="transition hover:text-gold-dark">{p.name}</a>
                     </h3>
-                    <p className="mt-0.5 text-[13px] text-stone-500">{p.sub}</p>
+                    <p className="mt-0.5 text-[13px] text-stone-500">{p.subCategory || p.desc}</p>
                     <div className="mt-2 flex items-center gap-1.5">
                       <Stars value={p.rating} />
                       <span className="text-xs font-semibold text-ink">{p.rating}</span>

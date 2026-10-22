@@ -24,12 +24,12 @@ function Col({ title, items }) {
     "About Us": "/about",
     Contact: "/contact",
     "All Products": "/shop",
-    "Attar & Fragrances": "/attar-fragrances",
-    "Islamic Caps": "/islamic-caps",
-    Surma: "/surma",
-    "Prayer Essentials": "/prayer-essentials",
-    "Islamic Wear": "/islamic-wear",
-    "Gifts & Combos": "/gifts-combos",
+    "Attar & Fragrances": "/shop?category=attar-and-fragrances",
+    "Islamic Caps": "/shop?category=islamic-caps",
+    Surma: "/shop?category=surma",
+    "Prayer Essentials": "/shop?category=prayer-essentials",
+    "Islamic Wear": "/shop?category=islamic-wear",
+    "Gifts & Combos": "/shop?category=gifts-and-combos",
   };
   return (
     <div>

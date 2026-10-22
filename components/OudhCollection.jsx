@@ -42,7 +42,7 @@ export default function OudhCollection() {
             Experience the richness of premium oudh fragrances, inspired by
             timeless traditions.
           </p>
-          <a href="/attar-fragrances" className="btn-gold mt-9 !px-7 !py-3.5">
+          <a href="/shop?category=attar-and-fragrances" className="btn-gold mt-9 !px-7 !py-3.5">
             Explore Oudh
           </a>
         </Reveal>

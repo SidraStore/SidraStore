@@ -20,6 +20,7 @@ function buildPayload(body) {
     gallery_urls: Array.isArray(body.gallery_urls) ? [...new Set(body.gallery_urls.map((url) => String(url).trim()).filter(Boolean))] : [],
     badge: String(body.badge || "").trim() || null,
     is_active: body.is_active !== false,
+    is_featured: body.is_featured === true,
   };
 }
 

@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, X, ShoppingBag } from "lucide-react";
+import { ChevronDown, Heart, X, ShoppingBag } from "lucide-react";
 import Logo from "./Logo";
 import { useCart } from "./CartProvider";
+import { useWishlist } from "./WishlistProvider";
 import ProductSearch from "./ProductSearch";
 
 // Slide-in drawer used for the mobile / tablet navigation (light theme).
 export default function MobileSidebar({ open, onClose, items }) {
   const [expanded, setExpanded] = useState(null);
   const { itemCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
 
   // lock page scroll while open, close on Esc
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function MobileSidebar({ open, onClose, items }) {
 
         {/* scrollable body */}
         <div className="relative flex-1 overflow-y-auto px-6 pb-6 pt-5">
-          <ProductSearch expanded onNavigate={onClose} />
+          {open && <ProductSearch expanded onNavigate={onClose} />}
 
           {/* links */}
           <nav className="mt-4">
@@ -163,6 +165,10 @@ export default function MobileSidebar({ open, onClose, items }) {
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-gold-light to-gold text-xs font-bold text-ink transition group-hover:bg-ink group-hover:text-gold-light">
               {itemCount}
             </span>
+          </a>
+          <a href="/wishlist" onClick={onClose} className="mb-4 flex w-full items-center justify-center gap-2 rounded-full border border-gold/40 bg-white py-3 text-sm font-semibold text-ink transition hover:border-gold hover:bg-gold/10">
+            <Heart size={17} fill={wishlistCount ? "currentColor" : "none"} className={wishlistCount ? "text-red-500" : "text-gold-dark"} />
+            Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ""}
           </a>
           <a href="/all-products" onClick={onClose} className="btn-gold w-full !py-3.5 !text-[15px]">
             Shop Collection

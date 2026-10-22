@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -17,6 +17,7 @@ import {
 import Logo from "./Logo";
 import MobileSidebar from "./MobileSidebar";
 import { useCart } from "./CartProvider";
+import { useWishlist } from "./WishlistProvider";
 import { useStorefrontContent } from "./useStorefrontData";
 import ProductSearch from "./ProductSearch";
 
@@ -48,40 +49,56 @@ function Ticker({ announcements }) {
 const navItems = [
   { label: "Home", href: "/" },
   { label: "Shop", href: "/shop" },
-  { label: "Gifts & Combos", badge: "New", href: "/gifts-combos" },
+  { label: "Gifts & Combos", badge: "New", href: "/shop?category=gifts-and-combos" },
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
 
 export default function Header() {
   const { itemCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const { data: storefrontContent } = useStorefrontContent();
   const announcementMessages = storefrontContent.announcements.length ? storefrontContent.announcements.map((item) => item.message) : defaultAnnouncements.map((item) => item.text);
   const announcements = announcementMessages.map((text, index) => ({ icon: defaultAnnouncements[index % defaultAnnouncements.length].icon, text }));
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const closeMenu = useCallback(() => setOpen(false), []);
+  const progressRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const closeMenu = useCallback(() => {
+    menuButtonRef.current?.focus();
+    setOpen(false);
+  }, []);
 
   useEffect(() => {
+    let animationFrame = 0;
     const onScroll = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      setScrolled(window.scrollY > 40);
-      setProgress(max > 0 ? Math.min(window.scrollY / max, 1) : 0);
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(() => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollPosition = window.scrollY;
+        setScrolled((current) => {
+          const next = scrollPosition > 40;
+          return current === next ? current : next;
+        });
+        if (progressRef.current) {
+          const progress = max > 0 ? Math.min(scrollPosition / max, 1) : 0;
+          progressRef.current.style.transform = `scaleX(${progress})`;
+        }
+        animationFrame = 0;
+      });
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.cancelAnimationFrame(animationFrame);
+    };
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 animate-fade-in">
+    <>
       {/* top bar — folds away once you scroll */}
-      <div
-        className={`overflow-hidden bg-gradient-to-r from-ink via-[#241a12] to-ink text-[12.5px] text-stone-300 transition-all duration-500 ${
-          scrolled ? "max-h-0 border-b-0 opacity-0" : "max-h-10 border-b border-gold/20 opacity-100"
-        }`}
-      >
+      <div className="overflow-hidden border-b border-gold/20 bg-gradient-to-r from-ink via-[#241a12] to-ink text-[12.5px] text-stone-300">
         {/* mobile: auto-scrolling marquee so nothing gets cut off */}
         <div className="relative flex h-10 items-center overflow-hidden md:hidden">
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-ink to-transparent" />
@@ -131,24 +148,21 @@ export default function Header() {
       </div>
 
       {/* main nav */}
+      <header className="sticky top-0 z-50 animate-fade-in">
       <div
-        className={`relative border-b transition-all duration-500 ${
+        className={`relative border-b transition-colors duration-300 ${
           scrolled
             ? "border-gold/30 bg-white shadow-[0_10px_40px_-12px_rgba(21,16,12,0.35)]"
             : "border-stone-200 bg-white"
         }`}
       >
-        <div
-          className={`container-site flex items-center justify-between gap-2 transition-all duration-500 sm:gap-6 ${
-            scrolled ? "h-[66px]" : "h-[84px]"
-          }`}
-        >
+        <div className="container-site flex h-[84px] items-center justify-between gap-2 sm:gap-6">
           <a
             href="/"
             aria-label="Sidra home"
             className="shrink-0 transition duration-300 hover:scale-105"
           >
-            <Logo className={`transition-all duration-500 ${scrolled ? "h-7 sm:h-8" : "h-9 sm:h-11"}`} />
+            <Logo className="h-9 sm:h-11" />
           </a>
 
           {/* desktop links */}
@@ -231,12 +245,18 @@ export default function Header() {
               <User size={21} />
             </a>
 
-            <button
-              aria-label="Wishlist"
-              className="hidden h-11 w-11 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-red-500 2xl:flex"
+            <Link
+              href="/wishlist"
+              aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} saved` : ""}`}
+              className="relative hidden h-11 w-11 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-red-500 sm:flex"
             >
-              <Heart size={21} />
-            </button>
+              <Heart size={21} fill={wishlistCount ? "currentColor" : "none"} />
+              {wishlistCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-white">
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              )}
+            </Link>
 
             {/* cart pill */}
             <Link
@@ -252,6 +272,7 @@ export default function Header() {
             </Link>
 
             <button
+              ref={menuButtonRef}
               type="button"
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
@@ -282,14 +303,16 @@ export default function Header() {
 
         {/* scroll-progress line */}
         <span
-          className={`absolute bottom-0 left-0 h-[3px] bg-gradient-to-r from-gold-dark via-gold-light to-gold transition-opacity duration-300 ${
+          ref={progressRef}
+          className={`absolute bottom-0 left-0 h-[3px] w-full origin-left bg-gradient-to-r from-gold-dark via-gold-light to-gold transition-opacity duration-300 ${
             scrolled ? "opacity-100" : "opacity-0"
           }`}
-          style={{ width: `${progress * 100}%` }}
+          style={{ transform: "scaleX(0)" }}
         />
       </div>
 
       <MobileSidebar open={open} onClose={closeMenu} items={navItems} />
     </header>
+    </>
   );
 }

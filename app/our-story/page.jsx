@@ -94,7 +94,7 @@ export default function OurStoryPage() {
                 traditional wear, and gifts chosen to enrich meaningful moments.
               </p>
             </div>
-            <a href="/attar-fragrances" className="btn-gold mt-8 !px-7 !py-3.5">
+            <a href="/shop?category=attar-and-fragrances" className="btn-gold mt-8 !px-7 !py-3.5">
               Explore Our Attars
             </a>
           </Reveal>

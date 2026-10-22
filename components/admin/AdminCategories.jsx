@@ -125,13 +125,13 @@ export default function AdminCategories() {
 
   useEffect(() => { loadCategories(); }, []);
 
-  async function deleteCategory() {
-    if (!selected || !window.confirm(`Delete ${selected.name}? This cannot be undone.`)) return;
-    const response = await fetch(`/api/admin/catalog/categories/${selected.id}`, { method: "DELETE" });
+  async function deleteCategory(category = selected) {
+    if (!category || !window.confirm(`Delete ${category.name}? This cannot be undone.`)) return;
+    const response = await fetch(`/api/admin/catalog/categories/${category.id}`, { method: "DELETE" });
     const result = await response.json();
     if (!response.ok) return setError(result.error || "Unable to delete the category.");
     notifyStorefrontUpdate("catalog");
-    setSelected(null);
+    if (selected?.id === category.id) setSelected(null);
     await loadCategories();
   }
 
@@ -197,11 +197,11 @@ export default function AdminCategories() {
                 <SmartImage
                   src={getCategoryImage(category)}
                   alt={category.name}
-                  className={`h-28 w-full shrink-0 rounded-2xl border bg-cream sm:h-24 sm:w-36 ${
-                    selected?.id === category.id ? "border-gold ring-2 ring-gold/15" : "border-stone-200"
+                  className={`w-full shrink-0 rounded-2xl bg-transparent sm:h-24 sm:w-36 sm:border ${
+                    selected?.id === category.id ? "sm:border-gold sm:ring-2 sm:ring-gold/15" : "sm:border-stone-200"
                   }`}
-                  imgClassName="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  tone="from-stone-500 to-ink"
+                  imgClassName="block h-auto w-full object-contain transition duration-500 sm:h-full"
+                  tone="from-transparent to-transparent"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -231,6 +231,14 @@ export default function AdminCategories() {
                   >
                     <Pencil size={14} /> Edit / Update
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteCategory(category)}
+                    aria-label={`Delete ${category.name}`}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-600 transition hover:bg-red-50"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -240,12 +248,12 @@ export default function AdminCategories() {
 
       {selected && (
         <section id="admin-category-details" className="scroll-mt-24 grid overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm lg:grid-cols-[320px_1fr]">
-          <SmartImage src={getCategoryImage(selected)} alt={selected.name} className="min-h-[260px]" imgClassName="h-full w-full object-cover" tone="from-stone-600 to-ink" />
+          <SmartImage src={getCategoryImage(selected)} alt={selected.name} className="min-h-[260px] bg-cream" imgClassName="h-full w-full object-contain" tone="from-stone-600 to-ink" />
           <div className="p-6 sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-dark">Category details</p><h2 className="mt-2 text-3xl font-bold">{selected.name}</h2></div><div className="flex gap-2"><button onClick={() => setDialog("edit")} className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold hover:border-gold"><Pencil size={15} /> Edit / Update</button><button onClick={deleteCategory} className="flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 size={15} /> Delete</button></div></div>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-500">{selected.description || "No category description has been added."}</p>
             <div className="mt-6 flex flex-wrap gap-2">{selected.subcategories.map((item) => <span key={item.id} className="inline-flex items-center gap-2 rounded-full border border-gold/25 bg-cream py-1.5 pl-3 pr-1.5 text-xs font-medium">{item.name}<button type="button" onClick={() => renameSubcategory(item)} aria-label={`Rename ${item.name}`} className="rounded-full p-1 hover:bg-gold/20"><Pencil size={12} /></button><button type="button" onClick={() => deleteSubcategory(item)} aria-label={`Delete ${item.name}`} className="rounded-full p-1 text-red-600 hover:bg-red-50"><Trash2 size={12} /></button></span>)}</div>
-            <form onSubmit={addSubcategory} className="mt-6 flex max-w-xl flex-col gap-3 sm:flex-row"><input value={subcategoryName} onChange={(event) => setSubcategoryName(event.target.value)} placeholder="New subcategory name" className="h-11 flex-1 rounded-xl border px-3 text-sm outline-none focus:border-gold" /><button className="flex items-center justify-center gap-2 rounded-xl bg-gold px-4 text-sm font-semibold"><Plus size={15} /> Add Subcategory</button></form>
+            <form onSubmit={addSubcategory} className="mt-6 flex max-w-xl flex-col gap-3 sm:flex-row"><input value={subcategoryName} onChange={(event) => setSubcategoryName(event.target.value)} placeholder="New subcategory name" className="h-[52px] min-h-[52px] w-full shrink-0 rounded-full border border-stone-300 px-5 text-base outline-none transition focus:border-gold focus:ring-4 focus:ring-gold/10 sm:h-14 sm:min-h-0 sm:w-auto sm:flex-1 sm:rounded-xl" /><button className="flex h-14 items-center justify-center gap-2 rounded-full border border-gold-dark bg-gradient-to-b from-gold-light to-gold px-5 text-base font-semibold text-ink shadow-[0_10px_28px_-14px_rgba(201,154,75,0.8)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(201,154,75,0.9)] sm:rounded-xl"><Plus size={18} /> Add Subcategory</button></form>
           </div>
         </section>
       )}

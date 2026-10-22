@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { subscribeToStorefrontUpdates } from "@/lib/storefrontSync";
 
+const emptyStorefrontContent = { hero_slides: [], announcements: [], delivery_settings: null, faqs: [] };
+
 function getProductKey(product) {
   return String(product.slug || product.name || "").trim().toLowerCase();
 }
@@ -20,6 +22,7 @@ export function mapStorefrontProduct(product, fallbackProduct) {
     stockQuantity: Number(product.stock_quantity),
     rating: Number(product.rating),
     reviews: Number(product.review_count),
+    isFeatured: Boolean(product.is_featured),
     category: product.categories?.name || "Uncategorized",
     categorySlug: product.categories?.slug,
     subCategory: product.subcategories?.name || "General",
@@ -87,6 +90,11 @@ export function useStorefrontCatalog(initialProducts) {
   return { products, categories: data.categories, error, refresh };
 }
 
-export function useStorefrontContent() {
-  return useLiveEndpoint("/api/storefront/content", { hero_slides: [], announcements: [], delivery_settings: null, faqs: [] });
+export function useStorefrontCategories(initialCategories = []) {
+  const { data, error, refresh } = useLiveEndpoint("/api/storefront/catalog", { products: [], categories: initialCategories });
+  return { categories: data.categories, error, refresh };
+}
+
+export function useStorefrontContent(initialValue) {
+  return useLiveEndpoint("/api/storefront/content", initialValue || emptyStorefrontContent);
 }

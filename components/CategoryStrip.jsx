@@ -3,11 +3,51 @@
 import { useRef } from "react";
 import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
-import { stripCategories } from "@/lib/data";
+import { useStorefrontCategories } from "./useStorefrontData";
 
-export default function CategoryStrip() {
+const fallbackImages = {
+  "attar-and-fragrances": "/products/attar-fragrances/attar.jpg",
+  "islamic-caps": "/products/islamic-caps/IMG-20230108-WA0009.jpg.jpeg",
+  surma: "/products/surma/surma.jpg",
+  "prayer-essentials": "/products/prayer-essentials/ja-namaz.jpg",
+  "islamic-wear": "/products/islamic-wear/ajrak-chadar.jpg",
+  "gifts-and-combos": "/products/gifts-combos/attar.jpg",
+};
+
+const fallbackTones = {
+  "attar-and-fragrances": "from-amber-700 to-amber-950",
+  "islamic-caps": "from-stone-100 to-stone-300",
+  surma: "from-amber-800 to-stone-900",
+  "prayer-essentials": "from-blue-700 to-blue-950",
+  "islamic-wear": "from-red-800 to-red-950",
+  "gifts-and-combos": "from-amber-700 to-amber-950",
+};
+
+const allProductsCard = {
+  name: "All Products",
+  href: "/shop",
+  img: "/products/attar-fragrances/sidra-oudh.jpg",
+  tone: "from-emerald-900 to-stone-900",
+};
+
+function slugify(value) {
+  return String(value || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export default function CategoryStrip({ initialCategories }) {
   const ref = useRef(null);
   const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
+  const { categories } = useStorefrontCategories(initialCategories);
+  const categoryCards = categories.map((category) => {
+    const slug = category.slug || slugify(category.name);
+    return {
+      name: category.name,
+      href: `/shop?category=${encodeURIComponent(slug)}`,
+      img: category.image_url || fallbackImages[slug],
+      tone: fallbackTones[slug] || "from-stone-200 to-cream",
+    };
+  });
+  const cards = [...categoryCards, allProductsCard];
 
   // finger swipe is native; this adds click-and-drag for mouse users
   const onDown = (e) => {
@@ -50,7 +90,7 @@ export default function CategoryStrip() {
           onDragStart={(e) => e.preventDefault()}
           className="no-scrollbar -mx-4 flex touch-pan-x snap-x snap-proximity gap-3 overflow-x-auto overscroll-x-contain scroll-smooth px-4 pb-3 pt-1 [-webkit-overflow-scrolling:touch] sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-7 lg:gap-3 lg:overflow-visible lg:px-0"
         >
-          {stripCategories.map((c, i) => (
+          {cards.map((c, i) => (
             <Reveal
               key={c.name}
               from="zoom"
