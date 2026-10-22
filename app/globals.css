@@ -137,9 +137,3 @@ body {
     transition: none !important;
   }
 }
-
-/* Homepage-only surface tint. White buttons, cards, text, and accents keep their original colors. */
-.homepage-green,
-.homepage-green .bg-cream {
-  background-color: #eef4e9 !important;
-}

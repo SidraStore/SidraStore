@@ -56,7 +56,7 @@ export default async function Home() {
           {slideMobileImage && <link rel="preload" as="image" href={slideMobileImage} media="(max-width: 1023px)" fetchPriority={index === 0 ? "high" : "auto"} />}
         </Fragment>;
       })}
-      <div className="homepage-green min-h-screen">
+      <div className="min-h-screen">
         <Header />
         <main>
           <Hero initialContent={initialHeroContent} />
