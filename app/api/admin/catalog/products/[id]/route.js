@@ -1,6 +1,23 @@
 import { NextResponse } from "next/server";
 import { createAdminCatalogClient, createSlug, isAuthorizedAdminRequest } from "@/lib/adminCatalog";
 
+function normalizeVariants(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error("Size options must be an array.");
+
+  const sizes = new Set();
+  return value.map((variant, index) => {
+    const size = String(variant?.size || "").trim();
+    const price = Number(variant?.price);
+    const stock = variant?.stock === undefined || variant?.stock === "" ? null : Number(variant.stock);
+    if (!size || !Number.isFinite(price) || price < 0) throw new Error(`Size option ${index + 1} must have a valid size and price.`);
+    if (sizes.has(size.toLowerCase())) throw new Error(`Size option “${size}” is repeated.`);
+    if (stock !== null && (!Number.isInteger(stock) || stock < 0)) throw new Error(`Stock for ${size} must be a valid whole number.`);
+    sizes.add(size.toLowerCase());
+    return { size, price, ...(stock === null ? {} : { stock }) };
+  });
+}
+
 function buildPayload(body) {
   const name = String(body.name || "").trim();
   const price = Number(body.price);
@@ -16,6 +33,7 @@ function buildPayload(body) {
     description: String(body.description || "").trim() || null,
     price,
     stock_quantity: stockQuantity,
+    variants: normalizeVariants(body.variants),
     image_url: String(body.image_url).trim(),
     gallery_urls: Array.isArray(body.gallery_urls) ? [...new Set(body.gallery_urls.map((url) => String(url).trim()).filter(Boolean))] : [],
     badge: String(body.badge || "").trim() || null,

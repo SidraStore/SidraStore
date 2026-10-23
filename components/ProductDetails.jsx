@@ -35,6 +35,8 @@ function Stars({ value, size }) {
 }
 
 function getDescription(product) {
+  if (product.description?.trim()) return product.description.trim();
+
   const categoryDescriptions = {
     "Attar & Fragrances": "A refined, alcohol-free fragrance selected for its expressive character and lasting presence.",
     "Islamic Caps": "A thoughtfully crafted cap that balances traditional character with a comfortable everyday fit.",
@@ -124,7 +126,7 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                 <span className="text-sm text-stone-500">({product.reviews} verified reviews)</span>
               </div>
 
-              <p className="mt-7 max-w-[620px] text-base leading-8 text-stone-600">
+              <p className="mt-7 max-w-[620px] whitespace-pre-line text-base leading-8 text-stone-600">
                 {getDescription(product)}
               </p>
 

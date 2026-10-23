@@ -14,6 +14,28 @@ function categorySlug(value) {
   return String(value || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function getInitialFilterState(initialCategory, queryString = "") {
+  const searchParams = new URLSearchParams(queryString);
+  const categorySlugs = searchParams.getAll("category");
+  const categoryNames = categorySlugs
+    .map((slug) => allProducts.find((product) => categorySlug(product.category) === slug)?.category)
+    .filter(Boolean);
+  const fallbackCategory = allProducts.find((product) => categorySlug(product.category) === initialCategory)?.category;
+  const maximumPriceValue = searchParams.get("maxPrice");
+  const maximumPrice = maximumPriceValue === null ? null : Number(maximumPriceValue);
+  const requestedSort = searchParams.get("sort");
+  const requestedProductsPerPage = Number(searchParams.get("perPage"));
+  const requestedPage = Number(searchParams.get("page"));
+
+  return {
+    selectedCategories: new Set(categoryNames.length ? categoryNames : fallbackCategory ? [fallbackCategory] : []),
+    maximumPriceOverride: Number.isFinite(maximumPrice) && maximumPrice > 0 ? maximumPrice : null,
+    sortBy: ["featured", "price-low", "price-high", "rating", "newest"].includes(requestedSort) ? requestedSort : "featured",
+    productsPerPage: [12, 24, 36].includes(requestedProductsPerPage) ? requestedProductsPerPage : 12,
+    currentPage: Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
+  };
+}
+
 function FilterPanel({ products, categories, minimumCatalogPrice, maximumCatalogPrice, selectedCategories, maximumPrice, onCategoryToggle, onClearCategories, onMaximumPriceChange, onReset }) {
   const hasActiveFilters = selectedCategories.size > 0 || maximumPrice < maximumCatalogPrice;
 
@@ -112,6 +134,7 @@ export default function AllProducts({ initialCategory }) {
   const { addItem } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const { products, error: catalogError } = useStorefrontCatalog(allProducts);
+  const initialFilterState = getInitialFilterState(initialCategory);
   const categories = useMemo(() => {
     const categoryNames = new Map();
     products.forEach((product) => {
@@ -127,15 +150,23 @@ export default function AllProducts({ initialCategory }) {
       maximumCatalogPrice: catalogPrices.length ? Math.max(...catalogPrices) : 0,
     };
   }, [products]);
-  const initialCategoryName = allProducts.find((product) => categorySlug(product.category) === initialCategory)?.category || "";
   const [added, setAdded] = useState(() => new Set());
-  const [selectedCategories, setSelectedCategories] = useState(() => new Set(initialCategoryName ? [initialCategoryName] : []));
-  const [maximumPriceOverride, setMaximumPriceOverride] = useState(null);
+  const [selectedCategories, setSelectedCategories] = useState(() => new Set(initialFilterState.selectedCategories));
+  const [maximumPriceOverride, setMaximumPriceOverride] = useState(initialFilterState.maximumPriceOverride);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortBy, setSortBy] = useState("featured");
-  const [productsPerPage, setProductsPerPage] = useState(12);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState(initialFilterState.sortBy);
+  const [productsPerPage, setProductsPerPage] = useState(initialFilterState.productsPerPage);
+  const [currentPage, setCurrentPage] = useState(initialFilterState.currentPage);
   const maximumPrice = Math.min(maximumPriceOverride ?? maximumCatalogPrice, maximumCatalogPrice);
+
+  useEffect(() => {
+    const restoredFilterState = getInitialFilterState(initialCategory, window.location.search);
+    setSelectedCategories(new Set(restoredFilterState.selectedCategories));
+    setMaximumPriceOverride(restoredFilterState.maximumPriceOverride);
+    setSortBy(restoredFilterState.sortBy);
+    setProductsPerPage(restoredFilterState.productsPerPage);
+    setCurrentPage(restoredFilterState.currentPage);
+  }, [initialCategory]);
 
   useEffect(() => {
     if (!initialCategory) return;
@@ -197,6 +228,30 @@ export default function AllProducts({ initialCategory }) {
   useEffect(() => {
     setCurrentPage(1);
   }, [maximumPriceOverride, productsPerPage, selectedCategories, sortBy]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !products.length) return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.delete("category");
+    [...selectedCategories].forEach((category) => searchParams.append("category", categorySlug(category)));
+
+    if (maximumPriceOverride !== null && maximumPrice < maximumCatalogPrice) searchParams.set("maxPrice", String(maximumPriceOverride));
+    else searchParams.delete("maxPrice");
+
+    if (sortBy === "featured") searchParams.delete("sort");
+    else searchParams.set("sort", sortBy);
+
+    if (productsPerPage === 12) searchParams.delete("perPage");
+    else searchParams.set("perPage", String(productsPerPage));
+
+    if (activePage === 1) searchParams.delete("page");
+    else searchParams.set("page", String(activePage));
+
+    const query = searchParams.toString();
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }, [activePage, maximumCatalogPrice, maximumPrice, maximumPriceOverride, products.length, productsPerPage, selectedCategories, sortBy]);
 
   return (
     <section className="relative isolate overflow-clip bg-cream py-20 lg:py-24">

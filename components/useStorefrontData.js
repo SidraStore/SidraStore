@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { subscribeToStorefrontUpdates } from "@/lib/storefrontSync";
+import { applyProductCatalogDetails } from "@/lib/productCatalog";
 
 const emptyStorefrontContent = { hero_slides: [], announcements: [], delivery_settings: null, faqs: [] };
 
@@ -10,7 +11,7 @@ function getProductKey(product) {
 }
 
 export function mapStorefrontProduct(product, fallbackProduct) {
-  return {
+  return applyProductCatalogDetails({
     id: product.id,
     slug: product.slug,
     src: product.image_url,
@@ -29,7 +30,7 @@ export function mapStorefrontProduct(product, fallbackProduct) {
     badge: product.badge,
     variants: Array.isArray(product.variants) ? product.variants : (fallbackProduct?.variants || []),
     tone: fallbackProduct?.tone || "from-stone-200 to-cream",
-  };
+  }, fallbackProduct);
 }
 
 function useLiveEndpoint(url, initialValue) {

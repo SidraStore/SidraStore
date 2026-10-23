@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import ProductDetails from "@/components/ProductDetails";
 import {
   allProducts,
+  applyProductCatalogDetails,
   findProductBySlug,
   getSimilarProducts,
 } from "@/lib/productCatalog";
@@ -23,7 +24,7 @@ const loadProduct = cache(async (slug) => {
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) return fallbackProduct ? { ...fallbackProduct, slug } : null;
-    return {
+    return applyProductCatalogDetails({
       id: data.id,
       slug: data.slug,
       src: data.image_url,
@@ -41,7 +42,7 @@ const loadProduct = cache(async (slug) => {
       badge: data.badge,
       variants: data.variants || [],
       tone: fallbackProduct?.tone || "from-stone-200 to-cream",
-    };
+    }, fallbackProduct);
   } catch (error) {
     if (!fallbackProduct) throw error;
     console.warn("Product database lookup failed; using the bundled catalog entry.", { slug, error: error.message });
