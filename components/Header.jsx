@@ -18,8 +18,9 @@ import Logo from "./Logo";
 import MobileSidebar from "./MobileSidebar";
 import { useCart } from "./CartProvider";
 import { useWishlist } from "./WishlistProvider";
-import { useStorefrontContent } from "./useStorefrontData";
+import { useStorefrontCategories, useStorefrontContent } from "./useStorefrontData";
 import ProductSearch from "./ProductSearch";
+import { shopCategories } from "@/lib/data";
 
 // rotating announcement in the top bar
 const defaultAnnouncements = [
@@ -54,10 +55,36 @@ const navItems = [
   { label: "Contact", href: "/contact" },
 ];
 
+function slugify(value) {
+  return String(value || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function categoryItemsFromRecords(categories) {
+  return categories.map((category) => {
+    const categorySlug = category.slug || slugify(category.name);
+    return {
+      label: category.name,
+      href: `/shop?category=${encodeURIComponent(categorySlug)}`,
+      children: (category.subcategories || [])
+        .filter((subcategory) => subcategory.is_active !== false)
+        .sort((first, second) => (first.sort_order || 0) - (second.sort_order || 0))
+        .map((subcategory) => ({
+          name: subcategory.name,
+          href: `/shop?category=${encodeURIComponent(categorySlug)}&subcategory=${encodeURIComponent(subcategory.slug || slugify(subcategory.name))}`,
+        })),
+    };
+  });
+}
+
+const fallbackCategoryItems = shopCategories
+  .filter((category) => category.name !== "All Products")
+  .map((category) => ({ label: category.name, href: category.href }));
+
 export default function Header() {
   const { itemCount } = useCart();
   const { count: wishlistCount } = useWishlist();
   const { data: storefrontContent } = useStorefrontContent();
+  const { categories, isLoading: categoriesLoading } = useStorefrontCategories();
   const announcementMessages = storefrontContent.announcements.length ? storefrontContent.announcements.map((item) => item.message) : defaultAnnouncements.map((item) => item.text);
   const announcements = announcementMessages.map((text, index) => ({ icon: defaultAnnouncements[index % defaultAnnouncements.length].icon, text }));
   const [open, setOpen] = useState(false);
@@ -311,7 +338,13 @@ export default function Header() {
         />
       </div>
 
-      <MobileSidebar open={open} onClose={closeMenu} items={navItems} />
+      <MobileSidebar
+        open={open}
+        onClose={closeMenu}
+        items={navItems}
+        categoryItems={categories.length ? categoryItemsFromRecords(categories) : fallbackCategoryItems}
+        categoriesLoading={categoriesLoading && !categories.length}
+      />
     </header>
     </>
   );

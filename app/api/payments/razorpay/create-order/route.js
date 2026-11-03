@@ -16,7 +16,7 @@ export async function POST(request) {
     const body = await request.json();
     const supabase = createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) throw userError;
+    if (userError && userError.name !== "AuthSessionMissingError") throw userError;
 
     if (!user) {
       const parsed = parseGuestCheckoutPayload(body?.guestCheckout);

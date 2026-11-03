@@ -22,6 +22,12 @@ function getInitialFilterState(initialCategory, queryString = "", catalogCategor
     .map((slug) => catalogCategories.find((category) => categorySlug(category.slug || category.name) === slug)?.name)
     .filter(Boolean);
   const fallbackCategory = catalogCategories.find((category) => categorySlug(category.slug || category.name) === initialCategory)?.name;
+  const selectedCategory = categoryNames[0] || fallbackCategory;
+  const selectedCategoryRecord = catalogCategories.find((category) => category.name === selectedCategory);
+  const requestedSubcategory = searchParams.get("subcategory");
+  const selectedSubcategory = selectedCategoryRecord?.subcategories?.find(
+    (subcategory) => categorySlug(subcategory.slug || subcategory.name) === requestedSubcategory,
+  )?.name || "";
   const maximumPriceValue = searchParams.get("maxPrice");
   const maximumPrice = maximumPriceValue === null ? null : Number(maximumPriceValue);
   const requestedSort = searchParams.get("sort");
@@ -30,6 +36,7 @@ function getInitialFilterState(initialCategory, queryString = "", catalogCategor
 
   return {
     selectedCategories: new Set(categoryNames.length ? categoryNames : fallbackCategory ? [fallbackCategory] : []),
+    selectedSubcategory,
     maximumPriceOverride: Number.isFinite(maximumPrice) && maximumPrice > 0 ? maximumPrice : null,
     sortBy: ["featured", "price-low", "price-high", "rating", "newest"].includes(requestedSort) ? requestedSort : "featured",
     productsPerPage: [12, 24, 36].includes(requestedProductsPerPage) ? requestedProductsPerPage : 12,
@@ -84,8 +91,8 @@ function ShopSkeleton() {
   );
 }
 
-function FilterPanel({ products, categories, minimumCatalogPrice, maximumCatalogPrice, selectedCategories, maximumPrice, onCategoryToggle, onClearCategories, onMaximumPriceChange, onReset }) {
-  const hasActiveFilters = selectedCategories.size > 0 || maximumPrice < maximumCatalogPrice;
+function FilterPanel({ products, categories, minimumCatalogPrice, maximumCatalogPrice, selectedCategories, selectedSubcategory, maximumPrice, onCategoryToggle, onClearCategories, onMaximumPriceChange, onReset }) {
+  const hasActiveFilters = selectedCategories.size > 0 || selectedSubcategory || maximumPrice < maximumCatalogPrice;
 
   return (
     <div className="overflow-hidden rounded-3xl border border-gold/25 bg-white/95 shadow-[0_22px_50px_-30px_rgba(21,16,12,0.45)] backdrop-blur-sm">
@@ -186,6 +193,7 @@ function LoadedAllProducts({ initialCategory, products, catalogCategories, catal
   }, [products]);
   const [added, setAdded] = useState(() => new Set());
   const [selectedCategories, setSelectedCategories] = useState(() => new Set());
+  const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [maximumPriceOverride, setMaximumPriceOverride] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
@@ -198,6 +206,7 @@ function LoadedAllProducts({ initialCategory, products, catalogCategories, catal
   useEffect(() => {
     const restoredFilterState = getInitialFilterState(initialCategory, window.location.search, catalogCategories);
     setSelectedCategories(new Set(restoredFilterState.selectedCategories));
+    setSelectedSubcategory(restoredFilterState.selectedSubcategory);
     setMaximumPriceOverride(restoredFilterState.maximumPriceOverride);
     setSortBy(restoredFilterState.sortBy);
     setProductsPerPage(restoredFilterState.productsPerPage);
@@ -236,13 +245,20 @@ function LoadedAllProducts({ initialCategory, products, catalogCategories, catal
 
   const resetFilters = () => {
     setSelectedCategories(new Set());
+    setSelectedSubcategory("");
     setMaximumPriceOverride(null);
+  };
+
+  const clearCategoryFilters = () => {
+    setSelectedCategories(new Set());
+    setSelectedSubcategory("");
   };
 
   const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(product.category);
-    return matchesCategory && product.price <= maximumPrice;
-  }), [maximumPrice, products, selectedCategories]);
+    const matchesSubcategory = !selectedSubcategory || categorySlug(product.subCategory) === categorySlug(selectedSubcategory);
+    return matchesCategory && matchesSubcategory && product.price <= maximumPrice;
+  }), [maximumPrice, products, selectedCategories, selectedSubcategory]);
 
   const sortedProducts = useMemo(() => [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
@@ -272,7 +288,7 @@ function LoadedAllProducts({ initialCategory, products, catalogCategories, catal
       return;
     }
     setCurrentPage(1);
-  }, [filtersReady, maximumPriceOverride, productsPerPage, selectedCategories, sortBy]);
+  }, [filtersReady, maximumPriceOverride, productsPerPage, selectedCategories, selectedSubcategory, sortBy]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !filtersReady || !products.length) return;
@@ -280,6 +296,8 @@ function LoadedAllProducts({ initialCategory, products, catalogCategories, catal
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.delete("category");
     [...selectedCategories].forEach((category) => searchParams.append("category", categorySlug(category)));
+    if (selectedSubcategory) searchParams.set("subcategory", categorySlug(selectedSubcategory));
+    else searchParams.delete("subcategory");
 
     if (maximumPriceOverride !== null && maximumPrice < maximumCatalogPrice) searchParams.set("maxPrice", String(maximumPriceOverride));
     else searchParams.delete("maxPrice");
@@ -296,7 +314,7 @@ function LoadedAllProducts({ initialCategory, products, catalogCategories, catal
     const query = searchParams.toString();
     const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
     window.history.replaceState(window.history.state, "", nextUrl);
-  }, [activePage, filtersReady, maximumCatalogPrice, maximumPrice, maximumPriceOverride, products.length, productsPerPage, selectedCategories, sortBy]);
+  }, [activePage, filtersReady, maximumCatalogPrice, maximumPrice, maximumPriceOverride, products.length, productsPerPage, selectedCategories, selectedSubcategory, sortBy]);
 
   if (!filtersReady) return <ShopSkeleton />;
 
@@ -406,9 +424,10 @@ function LoadedAllProducts({ initialCategory, products, catalogCategories, catal
               minimumCatalogPrice={minimumCatalogPrice}
               maximumCatalogPrice={maximumCatalogPrice}
               selectedCategories={selectedCategories}
+              selectedSubcategory={selectedSubcategory}
               maximumPrice={maximumPrice}
               onCategoryToggle={toggleCategory}
-              onClearCategories={() => setSelectedCategories(new Set())}
+              onClearCategories={clearCategoryFilters}
               onMaximumPriceChange={setMaximumPriceOverride}
               onReset={resetFilters}
             />
