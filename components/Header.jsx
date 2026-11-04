@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
+  ArrowUpRight,
   ChevronDown,
   Heart,
   Mail,
@@ -80,11 +81,114 @@ const fallbackCategoryItems = shopCategories
   .filter((category) => category.name !== "All Products")
   .map((category) => ({ label: category.name, href: category.href }));
 
+function ShopMegaMenu({ items }) {
+  const [activeCategory, setActiveCategory] = useState(null);
+  const selectedCategory = items.find((category) => category.label === activeCategory);
+
+  return (
+    <div
+      onMouseLeave={() => setActiveCategory(null)}
+      className="pointer-events-none invisible absolute left-1/2 top-full z-50 w-[780px] max-w-[calc(100vw-2rem)] -translate-x-1/2 translate-y-2 pt-2 opacity-0 transition-all duration-300 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
+    >
+      <div className="relative max-h-[calc(100vh-6rem)] max-w-full overflow-x-hidden overflow-y-auto rounded-[22px] border border-gold/30 bg-gradient-to-br from-white via-cream to-white p-4 shadow-[0_24px_60px_-12px_rgba(21,16,12,0.45)] sm:p-5">
+        <span className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-gold-dark via-gold-light to-gold-dark" />
+        <span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(232,189,109,0.28),transparent_68%)]" />
+
+        <div className="relative flex items-end justify-between gap-4 border-b border-gold/20 pb-3">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.23em] text-gold-dark">Explore the collection</p>
+            <h2 className="mt-0.5 font-serif text-xl font-semibold leading-tight text-ink">Shop by category</h2>
+          </div>
+          <a
+            href="/shop"
+            className="group/all inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-2 text-xs font-semibold text-gold-dark transition hover:bg-gold/10 hover:text-ink"
+          >
+            View all
+            <ArrowUpRight size={14} className="transition-transform group-hover/all:-translate-y-0.5 group-hover/all:translate-x-0.5" />
+          </a>
+        </div>
+
+        <div className="relative mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          <div className="grid min-w-0 content-start grid-cols-2 gap-0.5">
+            {items.map((category, index) => {
+              const isActive = category.label === activeCategory;
+              return (
+                <button
+                  key={category.label}
+                  type="button"
+                  onClick={() => setActiveCategory(isActive ? null : category.label)}
+                  aria-expanded={isActive}
+                  aria-controls="shop-mega-subcategories"
+                  className={`group/category flex min-h-10 min-w-0 items-center justify-between gap-1.5 rounded-lg px-2.5 text-left text-[12.5px] font-semibold transition duration-300 ${
+                    isActive ? "bg-gold/15 text-gold-dark" : "text-ink hover:bg-gold/10 hover:text-gold-dark"
+                  }`}
+                  style={{ transitionDelay: `${index * 35}ms` }}
+                >
+                  <span className="min-w-0 truncate">{category.label}</span>
+                  <ChevronDown size={14} className={`shrink-0 transition-transform duration-300 ${isActive ? "rotate-180" : "-rotate-90"}`} />
+                </button>
+              );
+            })}
+          </div>
+
+          <div id="shop-mega-subcategories" className="min-h-[160px] min-w-0 rounded-xl border border-gold/20 bg-white/70 p-3.5 sm:p-4">
+            {selectedCategory ? (
+              <div key={selectedCategory.label} className="animate-fade-in">
+                <div className="flex items-start justify-between gap-3 border-b border-gold/20 pb-3">
+                  <h3 className="min-w-0 font-serif text-lg font-semibold leading-tight text-ink">{selectedCategory.label}</h3>
+                  <a
+                    href={selectedCategory.href}
+                    className="group/all inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold text-gold-dark transition hover:bg-gold/10 hover:text-ink"
+                  >
+                    View all
+                    <ArrowUpRight size={14} className="transition-transform group-hover/all:-translate-y-0.5 group-hover/all:translate-x-0.5" />
+                  </a>
+                </div>
+
+                {selectedCategory.children?.length > 0 ? (
+                  <div className="mt-3 grid min-w-0 grid-cols-2 gap-1">
+                    {selectedCategory.children.map((subcategory) => (
+                      <a
+                        key={subcategory.name}
+                        href={subcategory.href}
+                        className="group/sub flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-stone-600 transition hover:bg-cream hover:text-gold-dark"
+                      >
+                        <span className="h-1 w-1 shrink-0 rounded-full bg-gold/60 transition-all group-hover/sub:w-2 group-hover/sub:bg-gold-dark" />
+                        {subcategory.name}
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm text-stone-500">Browse the complete {selectedCategory.label.toLowerCase()} collection.</p>
+                )}
+              </div>
+            ) : (
+              <div className="flex min-h-[132px] items-center justify-center text-center">
+                <div>
+                  <span className="mx-auto mb-3 block h-px w-12 bg-gradient-to-r from-transparent via-gold to-transparent" />
+                  <h3 className="font-serif text-lg font-semibold text-ink">Choose a category</h3>
+                  <p className="mt-1 max-w-[190px] text-xs leading-relaxed text-stone-500">Select a collection to explore its subcategories.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="relative mt-4 flex items-center justify-between gap-4 border-t border-gold/20 pt-3">
+          <p className="text-[11px] text-stone-500">Curated for meaningful everyday rituals.</p>
+          <span className="h-px w-16 bg-gradient-to-r from-gold-dark to-transparent" aria-hidden="true" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Header() {
   const { itemCount } = useCart();
   const { count: wishlistCount } = useWishlist();
   const { data: storefrontContent } = useStorefrontContent();
   const { categories, isLoading: categoriesLoading } = useStorefrontCategories();
+  const shopMenuItems = categories.length ? categoryItemsFromRecords(categories) : fallbackCategoryItems;
   const announcementMessages = storefrontContent.announcements.length ? storefrontContent.announcements.map((item) => item.message) : defaultAnnouncements.map((item) => item.text);
   const announcements = announcementMessages.map((text, index) => ({ icon: defaultAnnouncements[index % defaultAnnouncements.length].icon, text }));
   const [open, setOpen] = useState(false);
@@ -196,7 +300,20 @@ export default function Header() {
           <nav className="hidden items-center gap-4 xl:flex 2xl:gap-6">
             {navItems.map((item) => (
               <div key={item.label} className="group relative">
-                {item.children ? (
+                {item.label === "Shop" ? (
+                  <>
+                    <a
+                      href={item.href}
+                      aria-haspopup="true"
+                      className="relative flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[14px] font-semibold text-ink transition duration-300 hover:bg-gold/10 hover:text-gold-dark"
+                    >
+                      {item.label}
+                      <ChevronDown size={14} className="transition duration-300 group-hover:rotate-180 group-focus-within:rotate-180" />
+                      <span className="absolute bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-gradient-to-r from-gold-dark via-gold-light to-gold-dark transition-all duration-300 group-hover:w-[55%]" />
+                    </a>
+                    <ShopMegaMenu items={shopMenuItems} />
+                  </>
+                ) : item.children ? (
                   // Parent with dropdown - use button, not anchor
                   <>
                     <button
@@ -342,7 +459,7 @@ export default function Header() {
         open={open}
         onClose={closeMenu}
         items={navItems}
-        categoryItems={categories.length ? categoryItemsFromRecords(categories) : fallbackCategoryItems}
+        categoryItems={shopMenuItems}
         categoriesLoading={categoriesLoading && !categories.length}
       />
     </header>

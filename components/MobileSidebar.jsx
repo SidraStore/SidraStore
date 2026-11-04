@@ -56,7 +56,7 @@ export default function MobileSidebar({ open, onClose, items, categoryItems = []
                   onClick={onClose}
                   className="flex min-w-0 flex-1 items-center px-3 py-2.5 text-[12.5px] font-semibold leading-snug transition hover:text-gold-dark"
                 >
-                  <span className="whitespace-normal break-words">{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </Link>
                 {hasChildren && (
                   <button
