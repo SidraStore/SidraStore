@@ -33,10 +33,11 @@ const defaultAnnouncements = [
 function Ticker({ announcements }) {
   const [i, setI] = useState(0);
   useEffect(() => {
+    setI((current) => Math.min(current, announcements.length - 1));
     const id = setInterval(() => setI((v) => (v + 1) % announcements.length), 3500);
     return () => clearInterval(id);
-  }, []);
-  const { icon: Icon, text } = announcements[i];
+  }, [announcements.length]);
+  const { icon: Icon, text } = announcements[i] || announcements[0];
   return (
     <span
       key={i}
@@ -45,6 +46,24 @@ function Ticker({ announcements }) {
       <Icon size={15} className="text-gold" />
       <span className="text-shimmer">{text}</span>
     </span>
+  );
+}
+
+function AnnouncementMarquee({ messages }) {
+  const items = [...messages, ...messages];
+  return (
+    <div className="relative flex h-9 items-center overflow-hidden border-b border-gold/20 bg-gradient-to-r from-ink via-[#241a12] to-ink text-xs text-stone-300">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-ink to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-ink to-transparent" />
+      <div className="flex w-max will-change-transform animate-marquee items-center whitespace-nowrap">
+        {items.map((message, index) => (
+          <span key={`${message}-${index}`} aria-hidden={index >= messages.length} className="mx-8 flex shrink-0 items-center gap-2 font-medium sm:mx-12">
+            <Sparkles size={13} className="text-gold" />
+            <span className="text-shimmer">{message}</span>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -189,7 +208,8 @@ export default function Header() {
   const { data: storefrontContent } = useStorefrontContent();
   const { categories, isLoading: categoriesLoading } = useStorefrontCategories();
   const shopMenuItems = categories.length ? categoryItemsFromRecords(categories) : fallbackCategoryItems;
-  const announcementMessages = storefrontContent.announcements.length ? storefrontContent.announcements.map((item) => item.message) : defaultAnnouncements.map((item) => item.text);
+  const adminAnnouncementMessages = storefrontContent.announcements.map((item) => item.message);
+  const announcementMessages = adminAnnouncementMessages.length ? adminAnnouncementMessages : defaultAnnouncements.map((item) => item.text);
   const announcements = announcementMessages.map((text, index) => ({ icon: defaultAnnouncements[index % defaultAnnouncements.length].icon, text }));
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -280,13 +300,14 @@ export default function Header() {
 
       {/* main nav */}
       <header className="sticky top-0 z-50 animate-fade-in">
-      <div
-        className={`relative border-b transition-colors duration-300 ${
-          scrolled
-            ? "border-gold/30 bg-white shadow-[0_10px_40px_-12px_rgba(21,16,12,0.35)]"
-            : "border-stone-200 bg-white"
-        }`}
-      >
+        {scrolled && adminAnnouncementMessages.length > 0 && <AnnouncementMarquee messages={adminAnnouncementMessages} />}
+        <div
+          className={`relative border-b transition-colors duration-300 ${
+            scrolled
+              ? "border-gold/30 bg-white shadow-[0_10px_40px_-12px_rgba(21,16,12,0.35)]"
+              : "border-stone-200 bg-white"
+          }`}
+        >
         <div className="container-site flex h-[84px] items-center justify-between gap-2 sm:gap-6">
           <a
             href="/"

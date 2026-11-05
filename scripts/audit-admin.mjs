@@ -100,6 +100,8 @@ try {
   created.reviewId = review.id;
   result = await request(`/api/admin/reviews/${review.id}`, { method: "PATCH", body: JSON.stringify({ status: "approved" }) });
   record("Review moderation update", result.response.ok && result.body.review?.status === "approved", `status ${result.response.status}`);
+  result = await request("/api/storefront/reviews");
+  record("Approved review storefront read", result.response.ok && result.body.reviews?.some((item) => item.id === review.id), `review ${result.body.reviews?.some((item) => item.id === review.id) ? "found" : "missing"}`);
   result = await request(`/api/admin/reviews/${review.id}`, { method: "DELETE" });
   record("Review delete", result.response.ok, `status ${result.response.status}`);
   created.reviewId = null;

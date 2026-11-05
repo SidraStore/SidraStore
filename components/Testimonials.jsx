@@ -6,8 +6,10 @@ import SmartImage from "./SmartImage";
 import Reveal from "./Reveal";
 import { subscribeToStorefrontUpdates } from "@/lib/storefrontSync";
 
-const SPEED = 45; // px per second
+const SPEED = 45;
 const STEP = 400; // px moved by an arrow click
+
+const normalizeTime = (time, duration) => ((time % duration) + duration) % duration;
 
 function Stars({ value }) {
   return (
@@ -81,7 +83,7 @@ export default function Testimonials() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const trackRef = useRef(null);
-  const s = useRef({ pos: 0, target: null, half: 0, paused: false, dragging: false, startX: 0, startPos: 0 });
+  const s = useRef({ animation: null, duration: 0, half: 0, dragging: false, startX: 0, startTime: 0 });
 
   useEffect(() => {
     let mounted = true;
@@ -114,61 +116,53 @@ export default function Testimonials() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const measure = () => (st.half = track.scrollWidth / 2);
     measure();
+    st.duration = Math.max(12000, (st.half / SPEED) * 1000);
     window.addEventListener("resize", measure);
 
-    const wrap = () => {
-      if (!st.half) return;
-      while (st.pos >= st.half) {
-        st.pos -= st.half;
-        if (st.target !== null) st.target -= st.half;
-      }
-      while (st.pos < 0) {
-        st.pos += st.half;
-        if (st.target !== null) st.target += st.half;
-      }
-    };
-
-    let raf = 0;
-    let last = performance.now();
-    const tick = (now) => {
-      const dt = Math.min((now - last) / 1000, 0.05);
-      last = now;
-      if (st.target !== null && !st.dragging) {
-        st.pos += (st.target - st.pos) * 0.12;
-        if (Math.abs(st.target - st.pos) < 0.5) st.target = null;
-      } else if (!st.paused && !st.dragging && !reduced) {
-        st.pos += SPEED * dt;
-      }
-      wrap();
-      track.style.transform = `translate3d(${-st.pos}px,0,0)`;
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    const animation = reduced
+      ? null
+      : track.animate(
+          [
+            { transform: "translate3d(0, 0, 0)" },
+            { transform: "translate3d(-50%, 0, 0)" },
+          ],
+          { duration: st.duration, easing: "linear", iterations: Infinity },
+        );
+    st.animation = animation;
 
     return () => {
-      cancelAnimationFrame(raf);
+      animation?.cancel();
+      if (st.animation === animation) st.animation = null;
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [reviews.length]);
 
   const go = (dir) => {
     const st = s.current;
-    st.target = (st.target ?? st.pos) + dir * STEP;
+    if (!st.animation || !st.half) return;
+    const currentTime = Number(st.animation.currentTime || 0);
+    st.animation.currentTime = normalizeTime(currentTime + (dir * STEP * st.duration) / st.half, st.duration);
   };
 
   const onDown = (e) => {
     const st = s.current;
+    st.animation?.pause();
     st.dragging = true;
-    st.target = null;
     st.startX = e.clientX;
-    st.startPos = st.pos;
+    st.startTime = Number(st.animation?.currentTime || 0);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const onMove = (e) => {
     const st = s.current;
-    if (st.dragging) st.pos = st.startPos - (e.clientX - st.startX);
+    if (st.dragging && st.animation && st.half) {
+      st.animation.currentTime = normalizeTime(st.startTime - ((e.clientX - st.startX) * st.duration) / st.half, st.duration);
+    }
   };
-  const onUp = () => (s.current.dragging = false);
+  const onUp = () => {
+    const st = s.current;
+    st.dragging = false;
+    st.animation?.play();
+  };
 
   if (loading) return <section className="bg-cream py-16 text-center text-sm text-stone-500 sm:py-24">Loading customer reviews...</section>;
   if (!reviews.length) return <section className="bg-cream py-16 text-center text-sm text-stone-500 sm:py-24">No approved customer reviews yet.</section>;
@@ -218,8 +212,8 @@ export default function Testimonials() {
 
         <div
           className="cursor-grab touch-pan-y select-none overflow-hidden py-6 active:cursor-grabbing"
-          onMouseEnter={() => (s.current.paused = true)}
-          onMouseLeave={() => (s.current.paused = false)}
+          onMouseEnter={() => s.current.animation?.pause()}
+          onMouseLeave={() => { if (!s.current.dragging) s.current.animation?.play(); }}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
