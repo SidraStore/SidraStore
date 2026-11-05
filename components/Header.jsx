@@ -405,7 +405,7 @@ export default function Header() {
             <a
               href="/account"
               aria-label="Account"
-              className="hidden h-11 w-11 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark sm:flex"
+              className="flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gold/15 hover:text-gold-dark"
             >
               <User size={21} />
             </a>
