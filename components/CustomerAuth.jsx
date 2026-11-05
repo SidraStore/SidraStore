@@ -34,6 +34,7 @@ export default function CustomerAuth({ nextPath, initialError }) {
   const [cooldown, setCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [suggestRegister, setSuggestRegister] = useState(false);
+  const [suggestPasswordReset, setSuggestPasswordReset] = useState(false);
 
   useEffect(() => {
     if (!cooldown) return undefined;
@@ -49,6 +50,7 @@ export default function CustomerAuth({ nextPath, initialError }) {
     setStatus({ type: "", message: "" });
     setCooldown(0);
     setSuggestRegister(false);
+    setSuggestPasswordReset(false);
   }
 
   function changeAuthMethod(nextMethod) {
@@ -57,6 +59,7 @@ export default function CustomerAuth({ nextPath, initialError }) {
     setStatus({ type: "", message: "" });
     setCooldown(0);
     setSuggestRegister(false);
+    setSuggestPasswordReset(false);
   }
 
   async function handlePasswordSubmit(event) {
@@ -91,22 +94,40 @@ export default function CustomerAuth({ nextPath, initialError }) {
     }
 
     const supabase = createClient();
-    const result = isRegistering
-      ? await supabase.auth.signUp({
-        email: nextEmail,
-        password,
-        options: {
-          data: { full_name: nextFullName },
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(nextPath)}`,
-        },
-      })
-      : await supabase.auth.signInWithPassword({ email: nextEmail, password });
+    let result;
+
+    if (isRegistering) {
+      try {
+        const response = await fetch("/api/auth/password/register", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email: nextEmail, password, fullName: nextFullName }),
+        });
+
+        if (!response.ok) {
+          setSuggestPasswordReset(response.status === 409);
+          setEmail(nextEmail);
+          setStatus({ type: "error", message: await getErrorMessage(response, "We could not create your account. Please try again.") });
+          setSubmitting(false);
+          return;
+        }
+      } catch {
+        setStatus({ type: "error", message: "We could not create your account. Please try again." });
+        setSubmitting(false);
+        return;
+      }
+
+      result = await supabase.auth.signInWithPassword({ email: nextEmail, password });
+    } else {
+      result = await supabase.auth.signInWithPassword({ email: nextEmail, password });
+    }
 
     setSubmitting(false);
     if (result.error) {
       const errorCode = String(result.error.code || "").toLowerCase();
       const errorMessage = String(result.error.message || "").toLowerCase();
       const shouldSuggestRegister = !isRegistering && (errorCode === "invalid_credentials" || errorMessage.includes("invalid login credentials"));
+      setSuggestPasswordReset(false);
       setSuggestRegister(shouldSuggestRegister);
       setStatus({
         type: "error",
@@ -118,13 +139,9 @@ export default function CustomerAuth({ nextPath, initialError }) {
     }
 
     setSuggestRegister(false);
+    setSuggestPasswordReset(false);
     setEmail(nextEmail);
     setFullName(nextFullName);
-
-    if (isRegistering && !result.data.session) {
-      setStatus({ type: "success", message: "Account created. Check your email to confirm your account, then log in." });
-      return;
-    }
 
     window.location.assign(nextPath);
   }
@@ -317,6 +334,7 @@ export default function CustomerAuth({ nextPath, initialError }) {
           )}
           {status.message && <p role={status.type === "error" ? "alert" : "status"} className={`rounded-xl px-4 py-3 text-sm ${status.type === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{status.message}</p>}
           {suggestRegister && <button type="button" onClick={() => changeMode("register")} className="mx-auto block text-sm font-bold text-gold-dark transition hover:text-ink">Create an account</button>}
+          {suggestPasswordReset && <div className="flex items-center justify-center gap-3 text-sm"><button type="button" onClick={() => changeMode("login")} className="font-bold text-gold-dark transition hover:text-ink">Sign in</button><span className="text-stone-300">·</span><button type="button" disabled={resettingPassword || submitting} onClick={requestPasswordReset} className="font-bold text-gold-dark transition hover:text-ink disabled:cursor-not-allowed disabled:opacity-50">{resettingPassword ? "Sending reset link..." : "Forgot password?"}</button></div>}
           <button disabled={submitting} className="group flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-gold-dark via-gold to-gold-dark px-6 text-sm font-bold uppercase tracking-[0.08em] text-white shadow-[0_14px_32px_-16px_rgba(168,122,50,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-14px_rgba(168,122,50,0.8)] disabled:cursor-not-allowed disabled:opacity-60">
             {!submitting && <LogIn size={18} />}
             {submitting ? (isRegistering ? "Creating account..." : "Signing in...") : (isRegistering ? "Create account" : "Sign in")}

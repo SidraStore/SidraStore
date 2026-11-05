@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendOtpEmail } from "@/lib/brevo";
 import {
   createOtp,
+  findAuthUserByEmail,
   getOtpExpiry,
   isValidEmail,
   normalizeEmail,
@@ -27,6 +28,10 @@ export async function POST(request) {
     }
 
     const admin = createAdminClient();
+    if (intent === "login" && !(await findAuthUserByEmail(admin, email))) {
+      return NextResponse.json({ error: "Account not found or the password is incorrect. If you are new to Sidra Store, create an account first." }, { status: 404 });
+    }
+
     const { data: recentChallenge, error: recentChallengeError } = await admin
       .from("email_otp_challenges")
       .select("id,created_at")
