@@ -80,43 +80,47 @@ function StatCard({ icon: Icon, label, value, note, tone }) {
   );
 }
 
-function Dashboard({ categories }) {
-  const [commerceCounts, setCommerceCounts] = useState({ orders: null, customers: null });
-  const [commerceError, setCommerceError] = useState("");
-  const subcategoryCount = categories.reduce((total, category) => total + category.subcategories.length, 0);
-  const categorySummary = categories.map((category) => ({
-    ...category,
-    productCount: allProducts.filter((product) => product.category === category.name).length,
-  }));
+function Dashboard() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardError, setDashboardError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([
-      fetch("/api/admin/orders", { cache: "no-store" }),
-      fetch("/api/admin/customers", { cache: "no-store" }),
-    ]).then(async ([orderResponse, customerResponse]) => {
-      const [orderResult, customerResult] = await Promise.all([orderResponse.json(), customerResponse.json()]);
-      if (!orderResponse.ok || !customerResponse.ok) throw new Error(orderResult.error || customerResult.error || "Unable to load commerce totals.");
-      if (mounted) setCommerceCounts({ orders: orderResult.orders.length, customers: customerResult.customers.length });
-    }).catch((error) => {
-      if (mounted) {
-        setCommerceCounts({ orders: "—", customers: "—" });
-        setCommerceError(error.message);
-      }
-    });
+    fetch("/api/admin/dashboard", { cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Unable to load dashboard totals.");
+        if (mounted) setDashboardData(result);
+      })
+      .catch((error) => {
+        if (mounted) setDashboardError(error.message || "Unable to load dashboard totals.");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     return () => { mounted = false; };
   }, []);
+
+  const categorySummary = dashboardData?.categorySummary || [];
+  const productCount = dashboardData?.products.active ?? (loading ? "..." : "—");
+  const categoryCount = dashboardData?.categories.active ?? (loading ? "..." : "—");
+  const subcategoryCount = dashboardData?.categories.activeSubcategories ?? (loading ? "..." : "—");
+  const orderCount = dashboardData?.orders ?? (loading ? "..." : "—");
+  const customerCount = dashboardData?.customers ?? (loading ? "..." : "—");
+  const subcategoryNote = dashboardData ? `${subcategoryCount} active subcategories` : loading ? "Loading..." : "Unavailable";
+  const catalogStatusTitle = dashboardData ? "Catalog is ready" : loading ? "Loading catalog..." : "Catalog status unavailable";
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Package} label="Products" value={allProducts.length} note="Active catalog items" tone="bg-amber-100 text-amber-700" />
-        <StatCard icon={FolderTree} label="Categories" value={categories.length} note={`${subcategoryCount} subcategories`} tone="bg-blue-100 text-blue-700" />
-        <StatCard icon={ClipboardList} label="Orders" value={commerceCounts.orders ?? "…"} note="Live commerce records" tone="bg-emerald-100 text-emerald-700" />
-        <StatCard icon={Users} label="Customers" value={commerceCounts.customers ?? "…"} note="Registered and guest profiles" tone="bg-purple-100 text-purple-700" />
+        <StatCard icon={Package} label="Products" value={productCount} note="Active catalog items" tone="bg-amber-100 text-amber-700" />
+        <StatCard icon={FolderTree} label="Categories" value={categoryCount} note={subcategoryNote} tone="bg-blue-100 text-blue-700" />
+        <StatCard icon={ClipboardList} label="Orders" value={orderCount} note="Live commerce records" tone="bg-emerald-100 text-emerald-700" />
+        <StatCard icon={Users} label="Customers" value={customerCount} note="Registered and guest profiles" tone="bg-purple-100 text-purple-700" />
       </div>
 
-      {commerceError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{commerceError}</p>}
+      {dashboardError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{dashboardError}</p>}
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <section className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
@@ -135,13 +139,13 @@ function Dashboard({ categories }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {categorySummary.map((category) => (
+                {loading ? <tr><td colSpan={3} className="px-7 py-8 text-sm text-stone-500">Loading live catalog totals...</td></tr> : dashboardError ? <tr><td colSpan={3} className="px-7 py-8 text-sm text-red-700">Catalog totals are unavailable.</td></tr> : categorySummary.length ? categorySummary.map((category) => (
                   <tr key={category.id} className="text-sm">
                     <td className="px-7 py-4 font-semibold text-ink">{category.name}</td>
                     <td className="px-5 py-4 text-stone-500">{category.subcategories.length}</td>
-                    <td className="px-7 py-4 text-right font-semibold">{category.productCount}</td>
+                    <td className="px-7 py-4 text-right font-semibold">{category.product_count}</td>
                   </tr>
-                ))}
+                )) : <tr><td colSpan={3} className="px-7 py-8 text-sm text-stone-500">No active catalog categories found.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -149,12 +153,12 @@ function Dashboard({ categories }) {
 
         <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-dark">Store status</p>
-          <h3 className="mt-2 text-xl font-bold">Catalog is ready</h3>
+          <h3 className="mt-2 text-xl font-bold">{catalogStatusTitle}</h3>
           <div className="mt-6 space-y-5">
             {[
-              ["Product detail pages", "55 generated"],
-              ["Category navigation", "6 active"],
-              ["Homepage collections", "Connected"],
+              ["Product detail pages", dashboardData ? `${dashboardData.products.active} generated` : loading ? "Loading..." : "Unavailable"],
+              ["Category navigation", dashboardData ? `${dashboardData.categories.active} active` : loading ? "Loading..." : "Unavailable"],
+              ["Homepage collections", dashboardData ? `${dashboardData.homepage.featuredProducts} featured` : loading ? "Loading..." : "Unavailable"],
               ["Admin authentication", "Protected"],
             ].map(([label, value]) => (
               <div key={label} className="flex items-center justify-between gap-4 border-b border-stone-100 pb-4 text-sm last:border-0 last:pb-0">
