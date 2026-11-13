@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Check,
   Minus,
@@ -45,8 +45,10 @@ const serviceItems = [
 
 export default function ProductDetails({ product: initialProduct, similarProducts: initialSimilarProducts }) {
   const { addItem } = useCart();
-  const { products: liveProducts, error: catalogError } = useStorefrontCatalog([initialProduct, ...initialSimilarProducts]);
-  const product = liveProducts.find((item) => item.slug === initialProduct.slug || item.name === initialProduct.name) || initialProduct;
+  const { products: liveProducts, error: catalogError, hasLoaded: hasCatalogLoaded } = useStorefrontCatalog([initialProduct, ...initialSimilarProducts]);
+  const liveProduct = liveProducts.find((item) => item.slug === initialProduct.slug || item.name === initialProduct.name);
+  const product = liveProduct || initialProduct;
+  const productUnavailable = hasCatalogLoaded && !liveProduct;
   const similarProducts = liveProducts.filter((item) => item.name !== product.name).sort((a, b) => Number(b.category === product.category) - Number(a.category === product.category)).slice(0, 4);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -54,17 +56,29 @@ export default function ProductDetails({ product: initialProduct, similarProduct
 
   const variants = product.variants || [];
   const hasVariants = variants.length > 0;
-  const displayPrice = selectedVariant ? selectedVariant.price : product.price;
+  const activeVariant = variants.find((variant) => variant.size === selectedVariant?.size)
+    || (hasVariants ? variants.find((variant) => variant.stock === undefined || Number(variant.stock) > 0) || variants[0] : null);
+  const displayPrice = activeVariant ? activeVariant.price : product.price;
+  const stockValue = activeVariant ? Number(activeVariant.stock) : Number(product.stockQuantity);
+  const stockIsKnown = productUnavailable || Boolean(product.id && (activeVariant ? activeVariant.stock !== undefined : product.stockQuantity !== undefined));
+  const availableStock = stockIsKnown ? Math.max(0, Number.isFinite(stockValue) ? Math.floor(stockValue) : 0) : null;
+  const isOutOfStock = productUnavailable || (hasVariants && (!activeVariant || activeVariant.stock === undefined)) || (availableStock !== null && availableStock <= 0);
+
+  useEffect(() => {
+    if (availableStock !== null) setQuantity((current) => Math.max(1, Math.min(current, Math.max(1, availableStock))));
+  }, [availableStock]);
 
   const addToCart = () => {
-    const item = hasVariants && selectedVariant ? { ...product, price: selectedVariant.price, variant: selectedVariant } : product;
+    if (isOutOfStock || (hasVariants && !activeVariant) || (availableStock !== null && quantity > availableStock)) return;
+    const item = hasVariants ? { ...product, price: activeVariant.price, variant: activeVariant } : product;
     addItem(item, quantity);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };
 
   const buyNow = () => {
-    const item = hasVariants && selectedVariant ? { ...product, price: selectedVariant.price, variant: selectedVariant } : product;
+    if (isOutOfStock || (hasVariants && !activeVariant) || (availableStock !== null && quantity > availableStock)) return;
+    const item = hasVariants ? { ...product, price: activeVariant.price, variant: activeVariant } : product;
     addItem(item, quantity);
     window.setTimeout(() => window.location.assign("/checkout"), 100);
   };
@@ -122,23 +136,24 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                         key={variant.size}
                         type="button"
                         onClick={() => setSelectedVariant(variant)}
+                        disabled={variant.stock !== undefined && Number(variant.stock) <= 0}
                         className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
-                          selectedVariant?.size === variant.size
+                          activeVariant?.size === variant.size
                             ? "border-gold bg-gradient-to-b from-gold-light to-gold text-ink shadow-[0_4px_14px_-6px_rgba(201,154,75,0.5)]"
-                            : "border-stone-300 bg-white text-stone-700 hover:border-gold hover:bg-cream"
+                            : "border-stone-300 bg-white text-stone-700 hover:border-gold hover:bg-cream disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400"
                         }`}
-                        aria-pressed={selectedVariant?.size === variant.size}
+                        aria-pressed={activeVariant?.size === variant.size}
                       >
                         {variant.size}
                         <span className="text-gold-dark">₹{variant.price}</span>
                         {variant.stock !== undefined && (
-                          <span className="text-xs text-stone-500">({variant.stock} in stock)</span>
+                          <span className="text-xs text-stone-500">({variant.stock > 0 ? `${variant.stock} in stock` : "Out of stock"})</span>
                         )}
                       </button>
                     ))}
                   </div>
-                  {selectedVariant && (
-                    <p className="mt-2 text-sm text-gold-dark">Selected: {selectedVariant.size} — ₹{selectedVariant.price}</p>
+                  {activeVariant && (
+                    <p className="mt-2 text-sm text-gold-dark">Selected: {activeVariant.size} — ₹{activeVariant.price}</p>
                   )}
                 </div>
               )}
@@ -164,8 +179,9 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                   <button
                     type="button"
                     onClick={() => setQuantity((value) => value + 1)}
+                    disabled={availableStock !== null && quantity >= availableStock}
                     aria-label="Increase quantity"
-                    className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream"
+                    className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream disabled:cursor-not-allowed disabled:text-stone-300"
                   >
                     <Plus size={17} />
                   </button>
@@ -174,24 +190,28 @@ export default function ProductDetails({ product: initialProduct, similarProduct
                 <button
                   type="button"
                   onClick={addToCart}
+                  disabled={isOutOfStock || (hasVariants && !activeVariant)}
                   className={`col-span-2 flex h-[52px] min-h-[52px] w-full shrink-0 items-center justify-center gap-2 rounded-full px-7 text-sm font-semibold transition duration-300 sm:col-span-1 ${
                     added
                       ? "bg-emerald-600 text-white"
-                      : "bg-ink text-white hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink"
+                      : "bg-ink text-white hover:bg-gradient-to-b hover:from-gold-light hover:to-gold hover:text-ink disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-600"
                   }`}
                 >
                   {added ? <Check size={18} /> : <ShoppingBag size={18} />}
-                  {added ? `Added ${quantity} to Cart` : "Add to Cart"}
+                  {added ? `Added ${quantity} to Cart` : isOutOfStock ? "Out of Stock" : hasVariants && !activeVariant ? "Select a Size" : "Add to Cart"}
                 </button>
 
                 <button
                   type="button"
                   onClick={buyNow}
-                  className="col-span-2 flex h-[52px] min-h-[52px] w-full shrink-0 items-center justify-center gap-2 rounded-full border border-gold-dark bg-gradient-to-b from-gold-light to-gold px-7 text-sm font-semibold text-ink shadow-[0_10px_28px_-14px_rgba(201,154,75,0.8)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(201,154,75,0.9)] sm:col-span-1"
+                  disabled={isOutOfStock || (hasVariants && !activeVariant)}
+                  className="col-span-2 flex h-[52px] min-h-[52px] w-full shrink-0 items-center justify-center gap-2 rounded-full border border-gold-dark bg-gradient-to-b from-gold-light to-gold px-7 text-sm font-semibold text-ink shadow-[0_10px_28px_-14px_rgba(201,154,75,0.8)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(201,154,75,0.9)] disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-stone-500 sm:col-span-1"
                 >
-                  <Zap size={18} /> Buy Now
+                  <Zap size={18} /> {isOutOfStock ? "Unavailable" : "Buy Now"}
                 </button>
               </div>
+
+              {availableStock !== null && !isOutOfStock && <p className="mt-3 text-sm font-medium text-emerald-700">{availableStock} available now</p>}
 
               <div className="mt-8 grid grid-cols-2 gap-3">
                 {serviceItems.map(({ icon: Icon, title, text }) => (

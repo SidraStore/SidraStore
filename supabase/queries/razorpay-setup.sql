@@ -288,7 +288,7 @@ begin
     calculated_subtotal + calculated_shipping,
     p_razorpay_order_id,
     p_razorpay_payment_id
-  ) returning id into created_order_id;
+  ) returning id, order_number into created_order_id, created_order_number;
 
   insert into public.order_items (order_id, product_id, product_name, variant_label, unit_price, quantity, line_total)
   select

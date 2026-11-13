@@ -21,7 +21,7 @@ function errorResponse(error) {
 async function getOrder(supabase, orderId) {
   const { data, error } = await supabase
     .from("orders")
-    .select("id,order_number,customer_email,shipping_address,payment_method,total,created_at,customers(full_name,phone),order_items(id,product_id,product_name,unit_price,quantity)")
+    .select("id,order_number,customer_email,shipping_address,status,payment_method,total,created_at,customers(full_name,phone),order_items(id,product_id,product_name,unit_price,quantity)")
     .eq("id", orderId)
     .single();
   if (error) throw new Error(error.message);
@@ -120,6 +120,7 @@ export async function POST(request, { params }) {
     if (body.action === "push") {
       if (shipment && shipment.status !== "pending") return NextResponse.json({ shipment });
       const order = await getOrder(supabase, orderId);
+      if (order.status === "cancelled") throw new ShipmozoApiError("A cancelled order cannot be sent to Shipmozo.", 409);
       const dimensions = normalizePackageDimensions(body.dimensions);
       const payload = buildShipmozoOrderPayload(order, dimensions);
       const response = await runWithErrorRecord(supabase, orderId, "pending", () => shipmozoRequest("POST", "push-order", payload));

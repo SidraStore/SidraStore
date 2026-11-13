@@ -25,6 +25,7 @@ export function mapStorefrontProduct(product, fallbackProduct) {
     description: product.description,
     price: Number(product.price),
     stockQuantity: Number(product.stock_quantity),
+    inventoryStatus: product.inventory_status || (Number(product.stock_quantity) > 0 ? "in_stock" : "out_of_stock"),
     rating: Number(product.average_rating || 0),
     reviews: Number(product.approved_review_count || 0),
     isFeatured: Boolean(product.is_featured),
@@ -41,6 +42,7 @@ function useLiveEndpoint(url, initialValue) {
   const [data, setData] = useState(initialValue);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const dataSignatureRef = useRef(JSON.stringify(initialValue));
   const requestSequenceRef = useRef(0);
   const refresh = useCallback(async () => {
@@ -57,6 +59,7 @@ function useLiveEndpoint(url, initialValue) {
         setData(result);
       }
       setError("");
+      setHasLoaded(true);
       return true;
     } catch (requestError) {
       if (requestSequence !== requestSequenceRef.current) return false;
@@ -82,16 +85,17 @@ function useLiveEndpoint(url, initialValue) {
     const interval = window.setInterval(update, 10000);
     return () => { mounted = false; unsubscribe(); window.clearInterval(interval); };
   }, [refresh]);
-  return { data, error, refresh, isLoading };
+  return { data, error, refresh, isLoading, hasLoaded };
 }
 
 export function useStorefrontCatalog(initialProducts) {
   const initialProductsRef = useRef(initialProducts);
-  const { data, error, refresh, isLoading } = useLiveEndpoint("/api/storefront/catalog", { products: [], categories: [] });
+  const { data, error, refresh, isLoading, hasLoaded } = useLiveEndpoint("/api/storefront/catalog", { products: [], categories: [] });
   const products = useMemo(
     () => {
       const fallbackProducts = initialProductsRef.current;
-      if (!data.products.length) return fallbackProducts.map(withoutReviewSummary);
+      if (!hasLoaded && !data.products.length) return fallbackProducts.map(withoutReviewSummary);
+      if (hasLoaded && !data.products.length) return [];
 
       const fallbackByKey = new Map(fallbackProducts.map((product) => [getProductKey(product), product]));
       const fallbackOrder = new Map(fallbackProducts.map((product, index) => [getProductKey(product), index]));
@@ -111,9 +115,9 @@ export function useStorefrontCatalog(initialProducts) {
           return firstIndex - secondIndex;
         });
     },
-    [data.products],
+    [data.products, hasLoaded],
   );
-  return { products, categories: data.categories, error, refresh, isLoading };
+  return { products, categories: data.categories, error, refresh, isLoading, hasLoaded };
 }
 
 export function useStorefrontCategories(initialCategories = []) {

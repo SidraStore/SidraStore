@@ -22,7 +22,10 @@ function productPayload(body) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name || !body.category_id || !body.image_url) throw new Error("Name, category, and product image are required.");
   const price = Number(body.price);
-  const stockQuantity = Number(body.stock_quantity);
+  const variants = normalizeVariants(body.variants);
+  const stockQuantity = variants.length
+    ? variants.reduce((total, variant) => total + (variant.stock ?? 0), 0)
+    : Number(body.stock_quantity);
   if (!Number.isFinite(price) || price < 0) throw new Error("Enter a valid product price.");
   if (!Number.isInteger(stockQuantity) || stockQuantity < 0) throw new Error("Enter a valid stock quantity.");
   return {
@@ -34,7 +37,7 @@ function productPayload(body) {
     description: String(body.description || "").trim() || null,
     price,
     stock_quantity: stockQuantity,
-    variants: normalizeVariants(body.variants),
+    variants,
     image_url: String(body.image_url).trim(),
     gallery_urls: Array.isArray(body.gallery_urls) ? [...new Set(body.gallery_urls.map((url) => String(url).trim()).filter(Boolean))] : [],
     badge: String(body.badge || "").trim() || null,
@@ -46,7 +49,7 @@ function productPayload(body) {
 export async function GET(request) {
   if (!isAuthorizedAdminRequest(request)) return NextResponse.json({ error: "Administrator authentication is required." }, { status: 401 });
   const supabase = createAdminCatalogClient();
-  const { data, error } = await supabase.from("products").select("id,name,slug,category_id,subcategory_id,short_description,description,price,stock_quantity,image_url,gallery_urls,variants,badge,rating,review_count,is_active,is_featured,categories(name),subcategories(name)").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("products").select("id,name,slug,category_id,subcategory_id,short_description,description,price,stock_quantity,inventory_status,image_url,gallery_urls,variants,badge,rating,review_count,is_active,is_featured,categories(name),subcategories(name)").order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ products: data });
 }
@@ -63,4 +66,3 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
-

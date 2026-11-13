@@ -11,7 +11,7 @@ export async function GET() {
     { data: reviewSummaries, error: reviewSummaryError },
   ] = await Promise.all([
     supabase.from("categories").select("id,name,slug,description,image_url,sort_order,subcategories(id,name,slug,sort_order,is_active)").eq("is_active", true).order("sort_order"),
-    supabase.from("products").select("id,name,slug,short_description,description,price,stock_quantity,image_url,gallery_urls,variants,badge,is_featured,category_id,subcategory_id,categories(name,slug),subcategories(name,slug)").eq("is_active", true).order("created_at"),
+    supabase.from("products").select("id,name,slug,short_description,description,price,stock_quantity,inventory_status,image_url,gallery_urls,variants,badge,is_featured,category_id,subcategory_id,categories(name,slug),subcategories(name,slug)").eq("is_active", true).eq("inventory_status", "in_stock").gt("stock_quantity", 0).order("created_at"),
     supabase.from("product_review_summaries").select("product_id,average_rating,approved_review_count"),
   ]);
   const error = categoryError || productError || reviewSummaryError;

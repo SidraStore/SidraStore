@@ -23,6 +23,10 @@ This directory keeps database and authorization SQL separate from application co
 19. `migrations/019_cart_activity_notifications.sql`
 20. `migrations/020_correct_attar_product_separation.sql`
 21. `migrations/021_update_sandal_rose_details.sql`
+22. `migrations/022_order_cancellation.sql`
+23. `migrations/023_sequential_order_numbering.sql`
+24. `migrations/024_product_returns.sql`
+25. `migrations/025_inventory_stock_management.sql`
 
 Run `npm run upload:products` once to upload the product images in `public/products` to ImageKit. The script reads credentials from `.env`, writes the returned public URLs to `data/imagekit-product-urls.json`, and generates `migrations/007_seed_product_catalog.sql`. Then run migration 007 in the Supabase SQL editor.
 
@@ -34,11 +38,16 @@ Migration 018 enables guest COD and Razorpay checkout. Guest orders reuse an exi
 
 Migration 019 records idempotent cart-add activity for authenticated customers. The Admin Panel reads these records through its protected admin API; the Supabase Realtime publication is enabled for the notification table so server-side subscribers can receive inserts without exposing customer details to anonymous storefront clients.
 
-For Vercel deployments, configure `SHIPMOZO_API_BASE_URL`, `SHIPMOZO_PUBLIC_KEY`, `SHIPMOZO_PRIVATE_KEY`, and `SHIPMOZO_PICKUP_ADDRESS_ID` as Production server-side environment variables before using the Admin Panel's AWB actions. Redeploy after changing environment variables. `CRON_SECRET` protects the scheduled tracking sync endpoint.
+Migration 023 assigns every order a database-owned `SIDRA-01` style number. Existing order UUIDs and related records are preserved; previous display numbers are retained in `orders.legacy_order_number`. Customer checkout, guest checkout, Razorpay finalization, Shipmozo references, customer Order History, admin Orders, and payment confirmations all continue to use `orders.order_number`.
+
+Migration 024 adds the immutable delivery timestamp and one return request per order. Customers can request a return for seven days after delivery; the request reason is required and an optional HTTPS ImageKit evidence URL is supported. The protected admin return API manages `requested`, `approved`, `rejected`, `picked_up`, and `refunded` states, while `order_returns` Realtime events update customer and admin views. Set `IMAGEKIT_PRIVATE_KEY` for customer return-image uploads.
+
+Migration 025 makes `products.inventory_status` database-owned and derives it from `stock_quantity`. Existing authenticated and guest checkout functions lock product rows, re-check the requested quantity, deduct simple or variant stock, and now publish the resulting product row through Supabase Realtime. The storefront only exposes active products with positive stock, while admin stock edits and cancellation stock restoration automatically refresh the same status.
+
+For Vercel deployments, configure `SHIPMOZO_API_BASE_URL`, `SHIPMOZO_PUBLIC_KEY`, `SHIPMOZO_PRIVATE_KEY`, and `SHIPMOZO_PICKUP_ADDRESS_ID` as Production server-side environment variables before using the Admin Panel's AWB actions. Redeploy after changing environment variables. `CRON_SECRET` protects the scheduled tracking sync endpoint, which polls active Shipmozo shipments every 15 minutes and writes shipment/order updates back to Supabase Realtime.
+
+Run `queries/shipmozo-setup.sql` for a new tracking installation. For an existing Shipmozo installation, run `queries/shipmozo-live-sync.sql` to add the tracking timestamps, event history, and Realtime publication used by the customer Order History timeline.
 
 After creating an administrator in Supabase Auth, edit and run `queries/bootstrap_admin.sql` once with that account's email. The query deliberately fails while the placeholder remains unchanged.
 
 The current `/admin` login continues to use server-only `ADMIN_EMAIL` and `ADMIN_PASSWORD` values from `.env`. The Supabase authorization tables and policies are ready for a later migration to Supabase Auth without exposing the service-role key to the browser.
-
-
-

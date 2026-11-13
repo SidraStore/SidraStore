@@ -48,7 +48,7 @@ async function recordAuthenticatedCartActivity(item, quantity) {
 }
 
 export function CartProvider({ children }) {
-  const { products: catalogProducts, error: catalogError } = useStorefrontCatalog(allProducts);
+  const { products: catalogProducts, error: catalogError, hasLoaded: hasCatalogLoaded } = useStorefrontCatalog(allProducts);
   const [items, setItems] = useState([]);
   const itemsRef = useRef([]);
   const [loaded, setLoaded] = useState(false);
@@ -68,7 +68,7 @@ export function CartProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!loaded || !catalogProducts.length) return;
+    if (!loaded || !hasCatalogLoaded) return;
     const currentItems = itemsRef.current;
     const nextItems = currentItems.map((item) => {
         const itemProductSlug = item.productSlug || item.slug.replace(/-(6ml|12ml)$/, "");
@@ -76,43 +76,56 @@ export function CartProvider({ children }) {
           (candidate) => (candidate.slug || createProductSlug(candidate.name)) === itemProductSlug,
         );
 
-        // A temporary catalog/API mismatch must never erase a customer's cart.
-        if (!product) return item;
+        if (!product) return null;
 
         const variant = item.variant
           ? product.variants?.find((candidate) => candidate.size === item.variant.size)
           : null;
         const availableStock = variant?.stock ?? product.stockQuantity;
-        const quantity = Number.isFinite(availableStock) && availableStock > 0
-          ? Math.min(item.quantity, availableStock)
-          : item.quantity;
+        const quantity = Number.isFinite(availableStock)
+          ? Math.min(Math.max(0, Math.floor(Number(item.quantity) || 0)), Math.max(0, Math.floor(availableStock)))
+          : Math.max(0, Math.floor(Number(item.quantity) || 0));
 
-        return {
+        return quantity > 0 ? {
           ...item,
           productSlug: itemProductSlug,
           name: product.name + (variant ? ` (${variant.size})` : ""),
           price: Number(variant?.price ?? product.price),
           src: product.src,
           quantity,
-        };
-    });
+        } : null;
+    }).filter(Boolean);
 
     if (JSON.stringify(nextItems) !== JSON.stringify(currentItems)) {
       itemsRef.current = nextItems;
       persistCart(nextItems);
       setItems(nextItems);
     }
-  }, [catalogProducts, loaded]);
+  }, [catalogProducts, hasCatalogLoaded, loaded]);
 
   const addItem = useCallback((product, quantity = 1) => {
     const nextItem = normalizeCartItem(product, quantity);
     const currentItems = itemsRef.current;
     const existing = currentItems.find((item) => item.slug === nextItem.slug);
+    const liveProduct = catalogProducts.find(
+      (candidate) => (candidate.slug || createProductSlug(candidate.name)) === nextItem.productSlug,
+    );
+    const liveVariant = liveProduct && nextItem.variant
+      ? liveProduct.variants?.find((candidate) => candidate.size === nextItem.variant.size)
+      : null;
+    const availableStock = liveVariant?.stock ?? liveProduct?.stockQuantity;
+    const requestedQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
+    if (Number.isFinite(availableStock) && availableStock <= 0) return;
+    const quantityToAdd = Number.isFinite(availableStock)
+      ? Math.min(requestedQuantity, Math.max(0, Math.floor(availableStock) - (existing?.quantity || 0)))
+      : requestedQuantity;
+    if (quantityToAdd <= 0) return;
     const nextItems = !existing ? [...currentItems, nextItem] : currentItems.map((item) =>
       item.slug === nextItem.slug
-        ? { ...item, quantity: item.quantity + nextItem.quantity }
+        ? { ...item, quantity: item.quantity + quantityToAdd }
         : item,
     );
+    if (!existing) nextItem.quantity = quantityToAdd;
     itemsRef.current = nextItems;
     persistCart(nextItems);
     setItems(nextItems);
@@ -120,16 +133,30 @@ export function CartProvider({ children }) {
     void recordAuthenticatedCartActivity(nextItem, nextItem.quantity).catch((error) => {
       console.error("Unable to record authenticated cart activity.", error);
     });
-  }, []);
+  }, [catalogProducts]);
 
   const updateQuantity = useCallback((slug, quantity) => {
     const nextItems = itemsRef.current
-      .map((item) => item.slug === slug ? { ...item, quantity: Math.max(0, quantity) } : item)
+      .map((item) => {
+        if (item.slug !== slug) return item;
+        const product = catalogProducts.find(
+          (candidate) => (candidate.slug || createProductSlug(candidate.name)) === (item.productSlug || item.slug.replace(/-(6ml|12ml)$/, "")),
+        );
+        const variant = product && item.variant
+          ? product.variants?.find((candidate) => candidate.size === item.variant.size)
+          : null;
+        const availableStock = variant?.stock ?? product?.stockQuantity;
+        const requestedQuantity = Math.max(0, Math.floor(Number(quantity) || 0));
+        const safeQuantity = Number.isFinite(availableStock)
+          ? Math.min(requestedQuantity, Math.max(0, Math.floor(availableStock)))
+          : requestedQuantity;
+        return { ...item, quantity: safeQuantity };
+      })
       .filter((item) => item.quantity > 0);
     itemsRef.current = nextItems;
     persistCart(nextItems);
     setItems(nextItems);
-  }, []);
+  }, [catalogProducts]);
 
   const removeItem = useCallback((slug) => {
     const nextItems = itemsRef.current.filter((item) => item.slug !== slug);

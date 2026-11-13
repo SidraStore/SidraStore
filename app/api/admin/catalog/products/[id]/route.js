@@ -21,7 +21,10 @@ function normalizeVariants(value) {
 function buildPayload(body) {
   const name = String(body.name || "").trim();
   const price = Number(body.price);
-  const stockQuantity = Number(body.stock_quantity);
+  const variants = normalizeVariants(body.variants);
+  const stockQuantity = variants.length
+    ? variants.reduce((total, variant) => total + (variant.stock ?? 0), 0)
+    : Number(body.stock_quantity);
   if (!name || !body.category_id || !body.image_url) throw new Error("Name, category, and product image are required.");
   if (!Number.isFinite(price) || price < 0 || !Number.isInteger(stockQuantity) || stockQuantity < 0) throw new Error("Price or stock quantity is invalid.");
   return {
@@ -33,7 +36,7 @@ function buildPayload(body) {
     description: String(body.description || "").trim() || null,
     price,
     stock_quantity: stockQuantity,
-    variants: normalizeVariants(body.variants),
+    variants,
     image_url: String(body.image_url).trim(),
     gallery_urls: Array.isArray(body.gallery_urls) ? [...new Set(body.gallery_urls.map((url) => String(url).trim()).filter(Boolean))] : [],
     badge: String(body.badge || "").trim() || null,
