@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { createAdminCatalogClient, isAuthorizedAdminRequest } from "@/lib/adminCatalog";
+import { processOrderNotificationQueue } from "@/lib/orderNotifications";
 
-const orderStatuses = new Set(["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]);
+const orderStatuses = new Set(["pending", "confirmed", "processing", "shipped", "out_for_delivery", "delivered", "cancelled"]);
+
+async function dispatchOrderNotifications(supabase, orderId) {
+  try {
+    await processOrderNotificationQueue(supabase, { orderId });
+  } catch (error) {
+    console.error("[admin-orders] Order notification queued for retry", { orderId, error: error.message });
+  }
+}
 
 export async function PATCH(request, { params }) {
   if (!isAuthorizedAdminRequest(request)) return NextResponse.json({ error: "Administrator authentication is required." }, { status: 401 });
@@ -24,6 +33,7 @@ export async function PATCH(request, { params }) {
       p_reason: body.reason.trim(),
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 409 });
+    await dispatchOrderNotifications(supabase, params.id);
     return NextResponse.json({ order: data });
   }
 
@@ -42,5 +52,6 @@ export async function PATCH(request, { params }) {
     .select("id,status,payment_status,updated_at")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  await dispatchOrderNotifications(supabase, params.id);
   return NextResponse.json({ order: data });
 }

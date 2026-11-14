@@ -6,7 +6,7 @@ export async function GET(request) {
   const supabase = createAdminCatalogClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("id,order_number,customer_id,customer_email,shipping_address,status,payment_status,payment_method,subtotal,shipping_amount,total,created_at,updated_at,delivered_at,cancelled_at,cancellation_reason,stock_restored_at,customers(id,full_name,email,phone),order_items(id,product_id,product_name,variant_label,unit_price,quantity,line_total,products(image_url)),order_returns(id,status,reason,image_url,admin_note,requested_at,approved_at,rejected_at,picked_up_at,refunded_at,updated_at)")
+    .select("id,order_number,customer_id,customer_email,shipping_address,status,payment_status,payment_method,subtotal,shipping_amount,total,created_at,updated_at,delivered_at,cancelled_at,cancellation_reason,stock_restored_at,customers(id,full_name,email,phone),order_items(id,product_id,product_name,variant_label,unit_price,quantity,line_total,products(image_url)),order_status_history(id,previous_status,status,source,note,created_at),order_returns(id,status,reason,image_url,admin_note,requested_at,approved_at,rejected_at,picked_up_at,refunded_at,updated_at)")
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ orders: data });

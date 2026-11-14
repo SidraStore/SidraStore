@@ -240,6 +240,12 @@ export default function CustomerCheckout({ user, customer, address }) {
       return;
     }
 
+    await fetch("/api/order-notifications", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orderNumber: createdOrderNumber }),
+    }).catch(() => null);
+
     clearCart();
     setOrderPaymentMethod("cod");
     setOrderNumber(createdOrderNumber);

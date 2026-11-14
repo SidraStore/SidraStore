@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { processOrderNotificationsForNumber } from "@/lib/orderNotifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 
@@ -45,10 +46,16 @@ export async function POST(request) {
       .eq("status", "created");
     if (updateError) throw updateError;
 
-    const { error: finalizeError } = await admin.rpc(attempt.guest_checkout && !attempt.auth_user_id ? "finalize_guest_razorpay_payment" : "finalize_razorpay_payment", {
+    const { data: orderNumber, error: finalizeError } = await admin.rpc(attempt.guest_checkout && !attempt.auth_user_id ? "finalize_guest_razorpay_payment" : "finalize_razorpay_payment", {
       p_payment_attempt_id: attempt.id,
     });
     if (finalizeError) throw finalizeError;
+
+    try {
+      await processOrderNotificationsForNumber(admin, orderNumber);
+    } catch (notificationError) {
+      console.error("[payments/razorpay/webhook] Order notification queued for retry", { orderNumber, error: notificationError.message });
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {

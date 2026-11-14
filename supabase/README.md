@@ -27,6 +27,7 @@ This directory keeps database and authorization SQL separate from application co
 23. `migrations/023_sequential_order_numbering.sql`
 24. `migrations/024_product_returns.sql`
 25. `migrations/025_inventory_stock_management.sql`
+26. `migrations/026_order_tracking_and_notifications.sql`
 
 Run `npm run upload:products` once to upload the product images in `public/products` to ImageKit. The script reads credentials from `.env`, writes the returned public URLs to `data/imagekit-product-urls.json`, and generates `migrations/007_seed_product_catalog.sql`. Then run migration 007 in the Supabase SQL editor.
 
@@ -47,6 +48,8 @@ Migration 025 makes `products.inventory_status` database-owned and derives it fr
 For Vercel deployments, configure `SHIPMOZO_API_BASE_URL`, `SHIPMOZO_PUBLIC_KEY`, `SHIPMOZO_PRIVATE_KEY`, and `SHIPMOZO_PICKUP_ADDRESS_ID` as Production server-side environment variables before using the Admin Panel's AWB actions. Redeploy after changing environment variables. `CRON_SECRET` protects the scheduled tracking sync endpoint, which polls active Shipmozo shipments every 15 minutes and writes shipment/order updates back to Supabase Realtime.
 
 Run `queries/shipmozo-setup.sql` for a new tracking installation. For an existing Shipmozo installation, run `queries/shipmozo-live-sync.sql` to add the tracking timestamps, event history, and Realtime publication used by the customer Order History timeline.
+
+Migration 026 adds the full order status timeline, the `out_for_delivery` state, Supabase Realtime coverage, and an idempotent private email outbox. The application worker sends queued notifications through Brevo, while the database trigger only records safe, deduplicated work. Set `CRON_SECRET` so `/api/order-notifications` can retry failed deliveries.
 
 After creating an administrator in Supabase Auth, edit and run `queries/bootstrap_admin.sql` once with that account's email. The query deliberately fails while the placeholder remains unchanged.
 

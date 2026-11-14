@@ -111,3 +111,14 @@ begin
     alter publication supabase_realtime add table public.shipmozo_tracking_events;
   end if;
 end $$;
+
+-- Migration 026 owns the secure email outbox trigger. Recreate this hook when
+-- Shipmozo is installed after the main migrations.
+do $$
+begin
+  if to_regprocedure('public.queue_shipment_email_notification()') is not null then
+    execute 'drop trigger if exists shipmozo_shipments_queue_email_notification on public.shipmozo_shipments';
+    execute 'create trigger shipmozo_shipments_queue_email_notification after insert or update of awb_number, courier_name, tracking_url on public.shipmozo_shipments for each row execute function public.queue_shipment_email_notification()';
+  end if;
+end;
+$$;

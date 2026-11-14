@@ -6,12 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import SmartImage from "./SmartImage";
 
 const fulfillmentSteps = [
-  { label: "Order placed", description: "Order received" },
-  { label: "Confirmed", description: "Order confirmed" },
-  { label: "Processing", description: "Preparing your order" },
-  { label: "Shipped", description: "Handed to courier" },
-  { label: "Out for delivery", description: "Courier is on the way" },
-  { label: "Delivered", description: "Delivered to you" },
+  { status: "pending", label: "Pending", description: "Order received" },
+  { status: "confirmed", label: "Confirmed", description: "Order confirmed" },
+  { status: "processing", label: "Processing", description: "Preparing your order" },
+  { status: "shipped", label: "Shipped", description: "Handed to courier" },
+  { status: "out_for_delivery", label: "Out for delivery", description: "Courier is on the way" },
+  { status: "delivered", label: "Delivered", description: "Delivered to you" },
 ];
 
 const orderStatusStyles = {
@@ -19,6 +19,7 @@ const orderStatusStyles = {
   confirmed: "bg-blue-50 text-blue-700",
   processing: "bg-violet-50 text-violet-700",
   shipped: "bg-cyan-50 text-cyan-700",
+  out_for_delivery: "bg-orange-50 text-orange-700",
   delivered: "bg-emerald-50 text-emerald-700",
   cancelled: "bg-red-50 text-red-700",
 };
@@ -132,6 +133,16 @@ function getFulfillmentIndex(order, shipment) {
   return 0;
 }
 
+function getStatusHistory(order) {
+  return [...(order.order_status_history || [])].sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime());
+}
+
+function getStepTimestamp(order, step, activeIndex) {
+  const history = getStatusHistory(order).filter((entry) => entry.status === step.status);
+  if (history.length) return history[history.length - 1].created_at;
+  return activeIndex >= fulfillmentSteps.findIndex((item) => item.status === step.status) ? order.updated_at : null;
+}
+
 function getPaymentLabel(order) {
   return order.payment_method === "razorpay" ? "Prepaid / Razorpay" : "Cash on Delivery";
 }
@@ -186,7 +197,8 @@ function FulfillmentProgress({ order, shipment }) {
           {fulfillmentSteps.map((step, index) => {
             const complete = !cancelled && index <= activeIndex;
             const current = complete && index === activeIndex;
-            return <div key={step.label} className="relative pb-6 last:pb-0"><div className={`absolute -left-[31px] top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-cream ring-1 ${complete ? "bg-gold ring-gold/40" : "bg-stone-200 ring-stone-200"}`}>{complete && <Check size={9} strokeWidth={3} className="text-white" />}</div><p className={`text-sm font-semibold ${current ? "text-gold-dark" : "text-ink"}`}>{step.label}</p><p className="mt-1 text-xs leading-5 text-stone-500">{cancelled ? "Order cancelled" : complete && !current ? "Complete" : current ? step.description : "Awaiting update"}</p></div>;
+            const timestamp = complete ? getStepTimestamp(order, step, activeIndex) : null;
+            return <div key={step.label} className="relative pb-6 last:pb-0"><div className={`absolute -left-[31px] top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-cream ring-1 ${complete ? "bg-gold ring-gold/40" : "bg-stone-200 ring-stone-200"}`}>{complete && <Check size={9} strokeWidth={3} className="text-white" />}</div><p className={`text-sm font-semibold ${current ? "text-gold-dark" : "text-ink"}`}>{step.label}</p><p className="mt-1 text-xs leading-5 text-stone-500">{cancelled ? "Order cancelled" : complete && !current ? "Complete" : current ? step.description : "Awaiting update"}</p>{timestamp && <time dateTime={timestamp} className="mt-1 block text-[10px] text-stone-400">{formatDateTime(timestamp)}</time>}</div>;
           })}
         </div>
         {cancelled && <div className="flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 px-3.5 py-3 text-xs text-red-700"><XCircle size={16} className="mt-0.5 shrink-0" /><span><strong>Cancellation update:</strong> {order.cancellation_reason || "This order was cancelled."}{order.cancelled_at ? ` · ${formatDateTime(order.cancelled_at)}` : ""}</span></div>}
@@ -200,6 +212,7 @@ function FulfillmentProgress({ order, shipment }) {
               {fulfillmentSteps.map((step, index) => {
                 const complete = !cancelled && index <= activeIndex;
                 const current = complete && index === activeIndex;
+                const timestamp = complete ? getStepTimestamp(order, step, activeIndex) : null;
                 return (
                   <div key={step.label} className="text-center">
                     <div className={`mx-auto flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white ring-1 ${complete ? "bg-gold ring-gold/40" : "bg-stone-200 ring-stone-200"}`}>
@@ -207,6 +220,7 @@ function FulfillmentProgress({ order, shipment }) {
                     </div>
                     <p className={`mt-3 text-[10px] font-semibold ${current ? "text-gold-dark" : "text-ink"}`}>{step.label}</p>
                     <p className="mt-1 text-[9px] leading-4 text-stone-400">{cancelled ? "Order cancelled" : complete && !current ? "Complete" : current ? step.description : "Awaiting update"}</p>
+                    {timestamp && <time dateTime={timestamp} className="mt-1 block text-[9px] leading-4 text-stone-400">{formatDate(timestamp)}</time>}
                   </div>
                 );
               })}
@@ -215,6 +229,16 @@ function FulfillmentProgress({ order, shipment }) {
         </div>
         {cancelled && <div className="mx-2 mt-5 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 px-3.5 py-3 text-xs text-red-700"><XCircle size={16} className="mt-0.5 shrink-0" /><span><strong>Cancellation update:</strong> {order.cancellation_reason || "This order was cancelled."}{order.cancelled_at ? ` · ${formatDateTime(order.cancelled_at)}` : ""}</span></div>}
       </div>
+
+      {getStatusHistory(order).length > 0 && <div className="mt-6 border-t border-gold/15 pt-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dark">Status update log</p>
+        <div className="mt-4 divide-y divide-gold/10">
+          {getStatusHistory(order).map((entry) => <div key={entry.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+            <div><p className="text-sm font-semibold text-ink">{titleCase(entry.status)}</p><p className="mt-1 text-xs text-stone-500">{entry.note || `${titleCase(entry.source)} update`}</p></div>
+            <time dateTime={entry.created_at} className="shrink-0 text-right text-[10px] leading-4 text-stone-400">{formatDateTime(entry.created_at)}</time>
+          </div>)}
+        </div>
+      </div>}
     </section>
   );
 }
@@ -349,6 +373,11 @@ function ReturnRequestPanel({ order, shipment, onRequested }) {
         p_image_url: imageUrl,
       });
       if (requestError) throw new Error(requestError.message || "Unable to submit the return request.");
+      await fetch("/api/order-notifications", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ orderNumber: order.order_number }),
+      }).catch(() => null);
       onRequested(data);
     } catch (submitError) {
       setError(submitError.message || "Unable to submit the return request.");
@@ -549,6 +578,18 @@ export default function CustomerAccount({ user, customer, address, orders }) {
           return current.map((order) => order.id === payload.new.id ? { ...order, ...payload.new } : order);
         });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_status_history" }, (payload) => {
+        const historyEntry = payload.eventType === "DELETE" ? payload.old : payload.new;
+        setLiveOrders((current) => current.map((order) => {
+          if (order.id !== historyEntry.order_id) return order;
+          const history = order.order_status_history || [];
+          if (payload.eventType === "DELETE") return { ...order, order_status_history: history.filter((item) => item.id !== historyEntry.id) };
+          const nextHistory = history.some((item) => item.id === historyEntry.id)
+            ? history.map((item) => item.id === historyEntry.id ? { ...item, ...historyEntry } : item)
+            : [...history, historyEntry];
+          return { ...order, order_status_history: nextHistory };
+        }));
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "order_returns" }, (payload) => {
         const returnRequest = payload.eventType === "DELETE" ? payload.old : payload.new;
         setLiveOrders((current) => current.map((order) => {
@@ -624,6 +665,11 @@ export default function CustomerAccount({ user, customer, address, orders }) {
     setCancelLoading(false);
 
     if (error) return setCancelError(error.message || "Unable to cancel this order.");
+    await fetch("/api/order-notifications", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orderNumber: cancelTarget.order_number }),
+    }).catch(() => null);
     setLiveOrders((current) => current.map((order) => order.id === cancelTarget.id ? { ...order, ...(data || {}) } : order));
     setCancelTarget(null);
   }

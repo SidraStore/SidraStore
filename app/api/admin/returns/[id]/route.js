@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminCatalogClient, isAuthorizedAdminRequest } from "@/lib/adminCatalog";
+import { processOrderNotificationQueue } from "@/lib/orderNotifications";
 
 const returnStatuses = new Set(["requested", "approved", "rejected", "picked_up", "refunded"]);
 
@@ -25,6 +26,12 @@ export async function PATCH(request, { params }) {
     p_admin_note: body.admin_note === undefined ? null : body.admin_note,
   });
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
+
+  try {
+    await processOrderNotificationQueue(supabase, { orderId: returnRequest.order_id });
+  } catch (notificationError) {
+    console.error("[admin-returns] Order notification queued for retry", { orderId: returnRequest.order_id, error: notificationError.message });
+  }
 
   return NextResponse.json({ returnRequest });
 }

@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Download, Eye, ImagePlus, Mail, MapPin, Package, Phone, RefreshCw, RotateCcw, Truck, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, Download, Eye, ImagePlus, Mail, MapPin, Package, Phone, RefreshCw, RotateCcw, Truck, XCircle } from "lucide-react";
 import CatalogDialog from "./CatalogDialog";
 import SmartImage from "@/components/SmartImage";
 
-const orderStatuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+const orderStatuses = ["pending", "confirmed", "processing", "shipped", "out_for_delivery", "delivered", "cancelled"];
 const defaultPackageDimensions = { weightKg: "0.5", lengthCm: "10", widthCm: "10", heightCm: "10" };
 const statusStyles = {
   pending: "bg-amber-50 text-amber-700",
   confirmed: "bg-blue-50 text-blue-700",
   processing: "bg-violet-50 text-violet-700",
   shipped: "bg-cyan-50 text-cyan-700",
+  out_for_delivery: "bg-orange-50 text-orange-700",
   delivered: "bg-emerald-50 text-emerald-700",
   cancelled: "bg-red-50 text-red-700",
 };
@@ -149,6 +150,28 @@ function OrderedProducts({ order }) {
         <p className="flex justify-between gap-4 text-stone-500"><span>Shipping</span><span>{Number(order.shipping_amount) > 0 ? formatCurrency(order.shipping_amount) : "Free"}</span></p>
         <p className="flex justify-between gap-4 border-t border-stone-200 pt-3 text-base font-bold"><span>Order total</span><span>{formatCurrency(order.total)}</span></p>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function OrderStatusHistory({ history = [] }) {
+  if (!history.length) return null;
+
+  return (
+    <section className="border-t border-stone-200 px-5 py-5 sm:px-8">
+      <div className="flex items-center gap-2 text-sm font-bold text-ink"><Clock3 size={16} className="text-gold-dark" /> Status timeline</div>
+      <div className="mt-4 space-y-3 border-l border-gold/30 pl-5">
+        {[...history].sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()).map((entry) => (
+          <div key={entry.id} className="relative">
+            <span className="absolute -left-[25px] top-1.5 h-2.5 w-2.5 rounded-full bg-gold ring-4 ring-white" />
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-semibold">{titleCase(entry.status)}</p>
+              <time dateTime={entry.created_at} className="text-[10px] text-stone-400">{formatDate(entry.created_at)}</time>
+            </div>
+            <p className="mt-1 text-xs text-stone-500">{entry.note || `${titleCase(entry.source)} update`}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -439,6 +462,7 @@ export default function AdminOrders() {
           </div>
           <OrderSummary order={selected} shipment={shipment} />
           <OrderedProducts order={selected} />
+          <OrderStatusHistory history={selected.order_status_history} />
           <ReturnManagement returnRequest={getOrderReturn(selected)} onUpdated={handleReturnUpdated} />
           <div className="border-t border-stone-200 px-5 py-5 sm:px-8">
             <p className="text-sm font-bold text-ink">Order management</p>

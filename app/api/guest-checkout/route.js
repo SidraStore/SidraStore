@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { processOrderNotificationsForNumber } from "@/lib/orderNotifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseGuestCheckoutPayload } from "@/lib/guestCheckout";
 
@@ -21,6 +22,12 @@ export async function POST(request) {
       p_payment_status: "pending",
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    try {
+      await processOrderNotificationsForNumber(admin, orderNumber);
+    } catch (notificationError) {
+      console.error("[guest-checkout] Order notification queued for retry", { orderNumber, error: notificationError.message });
+    }
 
     return NextResponse.json({ orderNumber });
   } catch (error) {

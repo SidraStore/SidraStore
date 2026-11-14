@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { processOrderNotificationsForNumber } from "@/lib/orderNotifications";
 import { fetchRazorpayPayment, verifyPaymentSignature } from "@/lib/razorpay";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
@@ -61,6 +62,12 @@ export async function POST(request) {
       p_payment_attempt_id: attempt.id,
     });
     if (finalizeError) throw finalizeError;
+
+    try {
+      await processOrderNotificationsForNumber(admin, orderNumber);
+    } catch (notificationError) {
+      console.error("[payments/razorpay/verify] Order notification queued for retry", { orderNumber, error: notificationError.message });
+    }
 
     return NextResponse.json({ ok: true, orderNumber });
   } catch (error) {
