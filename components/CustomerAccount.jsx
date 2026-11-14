@@ -90,7 +90,7 @@ function getShipment(order) {
 }
 
 function getOrderReturn(order) {
-  return order.order_returns?.[0] || null;
+  return Array.isArray(order.order_returns) ? order.order_returns[0] || null : order.order_returns || null;
 }
 
 function getDeliveryDate(order, shipment) {
