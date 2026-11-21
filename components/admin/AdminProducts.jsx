@@ -35,9 +35,9 @@ function ProductForm({ product, categories, onSaved, onCancel }) {
   const [uploading, setUploading] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [imageUrls, setImageUrls] = useState(() => [...new Set([product?.image_url, ...(product?.gallery_urls || [])].filter(Boolean))]);
+  const [price, setPrice] = useState(() => product?.price ?? "");
   const [variants, setVariants] = useState(() => normalizeVariants(product?.variants));
   const category = categories.find((item) => item.id === categoryId);
-  const isAttarCategory = category?.slug === "attar-and-fragrances";
 
   async function save(event) {
     event.preventDefault();
@@ -49,15 +49,13 @@ function ProductForm({ product, categories, onSaved, onCancel }) {
       setSaving(false);
       return;
     }
-    const normalizedVariants = isAttarCategory
-      ? variants
-        .map((variant) => ({
-          size: variant.size.trim(),
-          price: Number(variant.price),
-          ...(variant.stock === "" ? {} : { stock: Number(variant.stock) }),
-        }))
-        .filter((variant) => variant.size || Number.isFinite(variant.price) || variant.stock !== undefined)
-      : [];
+    const normalizedVariants = variants
+      .map((variant) => ({
+        size: variant.size.trim(),
+        price: variant.price === "" ? NaN : Number(variant.price),
+        ...(variant.stock === "" ? {} : { stock: Number(variant.stock) }),
+      }))
+      .filter((variant) => variant.size || Number.isFinite(variant.price) || variant.stock !== undefined);
     const variantSizes = new Set();
     for (const [index, variant] of normalizedVariants.entries()) {
       if (!variant.size) {
@@ -151,9 +149,9 @@ function ProductForm({ product, categories, onSaved, onCancel }) {
       </div>
       <label className="text-sm font-semibold">Category<select name="category_id" required value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className={inputClass}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="text-sm font-semibold">Subcategory<select name="subcategory_id" defaultValue={product?.subcategory_id || ""} className={inputClass}><option value="">No subcategory</option>{category?.subcategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-      <label className="text-sm font-semibold">Price (₹)<input name="price" type="number" min="0" step="0.01" required defaultValue={product?.price || ""} className={inputClass} /></label>
-      <label className="text-sm font-semibold">{isAttarCategory ? "Total stock (from sizes)" : "Stock quantity"}<input name="stock_quantity" type="number" min="0" step="1" required defaultValue={product?.stock_quantity ?? 0} className={inputClass} /></label>
-      {isAttarCategory && <div className="rounded-2xl border border-gold/25 bg-cream/50 p-4 sm:col-span-2">
+      <label className="text-sm font-semibold">Price (₹)<input name="price" type="number" min="0" step="0.01" required value={variants.length ? variants[0].price : price} readOnly={variants.length > 0} onChange={(event) => setPrice(event.target.value)} className={inputClass} /></label>
+      <label className="text-sm font-semibold">{variants.length ? "Total stock (from sizes)" : "Stock quantity"}<input name="stock_quantity" type="number" min="0" step="1" required defaultValue={product?.stock_quantity ?? 0} className={inputClass} /></label>
+      <div className="rounded-2xl border border-gold/25 bg-cream/50 p-4 sm:col-span-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><p className="text-sm font-semibold">Size-wise pricing</p><p className="mt-1 text-xs leading-relaxed text-stone-500">Add options such as 6ml ₹249 and 12ml ₹549. The first option becomes the product’s listing price.</p></div>
           <button type="button" onClick={() => setVariants((current) => [...current, { size: "", price: "", stock: "" }])} className="inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-white px-3 py-2 text-xs font-semibold text-gold-dark hover:bg-cream"><Plus size={15} /> Add size</button>
@@ -164,7 +162,7 @@ function ProductForm({ product, categories, onSaved, onCancel }) {
           <label className="text-xs font-semibold text-stone-700">Stock (optional)<input value={variant.stock} onChange={(event) => setVariants((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, stock: event.target.value } : item))} type="number" min="0" step="1" placeholder="100" className={inputClass} /></label>
           <button type="button" onClick={() => setVariants((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove size option ${index + 1}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-200 text-red-600 hover:bg-red-50"><X size={17} /></button>
         </div>)}</div> : <p className="mt-4 rounded-xl border border-dashed border-stone-300 bg-white px-3 py-4 text-center text-sm text-stone-500">No size options added yet.</p>}
-      </div>}
+      </div>
       <label className="text-sm font-semibold">Short description<input name="short_description" required defaultValue={product?.short_description || ""} className={inputClass} /></label>
       <label className="text-sm font-semibold">Badge<input name="badge" defaultValue={product?.badge || ""} className={inputClass} placeholder="Optional" /></label>
       <label className="text-sm font-semibold sm:col-span-2">Full description<textarea name="description" defaultValue={product?.description || ""} rows={4} className="mt-2 w-full rounded-xl border border-stone-200 p-3 text-sm outline-none focus:border-gold focus:ring-4 focus:ring-gold/10" /></label>

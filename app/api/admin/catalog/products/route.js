@@ -8,7 +8,7 @@ function normalizeVariants(value) {
   const sizes = new Set();
   return value.map((variant, index) => {
     const size = String(variant?.size || "").trim();
-    const price = Number(variant?.price);
+    const price = variant?.price === "" || variant?.price === null || variant?.price === undefined ? NaN : Number(variant.price);
     const stock = variant?.stock === undefined || variant?.stock === "" ? null : Number(variant.stock);
     if (!size || !Number.isFinite(price) || price < 0) throw new Error(`Size option ${index + 1} must have a valid size and price.`);
     if (sizes.has(size.toLowerCase())) throw new Error(`Size option “${size}” is repeated.`);
@@ -21,8 +21,8 @@ function normalizeVariants(value) {
 function productPayload(body) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name || !body.category_id || !body.image_url) throw new Error("Name, category, and product image are required.");
-  const price = Number(body.price);
   const variants = normalizeVariants(body.variants);
+  const price = variants[0]?.price ?? Number(body.price);
   const stockQuantity = variants.length
     ? variants.reduce((total, variant) => total + (variant.stock ?? 0), 0)
     : Number(body.stock_quantity);
